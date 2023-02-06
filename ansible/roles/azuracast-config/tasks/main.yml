@@ -7,6 +7,12 @@
     group: www-data
     mode: 0775
 
+- name: Copy existing INI file if it exists
+  copy:
+    src: "{{ www_base }}/env.ini"
+    dest: "{{ app_base }}/env.ini"
+  ignore: true
+
 - name: Clear temp directory
   file:
     path: "{{ tmp_base }}"
@@ -44,7 +50,7 @@
 - name: Write environment configuration file
   template:
     src: env.ini.j2
-    dest: "{{ www_base }}/env.ini"
+    dest: "{{ app_base }}/env.ini"
     owner: azuracast
     group: www-data
     mode: 0644
@@ -52,7 +58,7 @@
 
 - name: Set up environment file
   ini_file:
-    dest: "{{ www_base }}/env.ini"
+    dest: "{{ app_base }}/env.ini"
     section: "configuration"
     option: "application_env"
     value: "{{ app_env }}"

@@ -63,7 +63,7 @@
 
 - name: Set up environment file
   ini_file:
-    dest: "{{ www_base }}/env.ini"
+    dest: "{{ app_base }}/env.ini"
     section: "configuration"
     option: "{{ azure_db_install_env_ini.option }}"
     value: "{{ azure_db_install_env_ini.value }}"
