@@ -11,7 +11,7 @@
   copy:
     src: "{{ www_base }}/env.ini"
     dest: "{{ app_base }}/env.ini"
-  ignore: true
+  ignore_errors: true
 
 - name: Clear temp directory
   file:
