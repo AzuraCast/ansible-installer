@@ -1,0 +1,7 @@
+---
+- name: Enable and restart Supervisord
+  service:
+    name: "supervisor"
+    enabled: true
+    state: restarted
+  ignore_errors: true
