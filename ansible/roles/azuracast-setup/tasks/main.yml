@@ -5,7 +5,7 @@
     state: touch
     mode: "a+x"
   loop:
-    - "{{ www_base }}/update.sh"
+    - "{{ ansible_base }}/update.sh"
     - "{{ www_base }}/bin/console"
   loop_control:
     loop_var: azuracast_setup_update_script
