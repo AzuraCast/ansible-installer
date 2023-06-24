@@ -1,13 +1,21 @@
 ---
-- name: Add Redis PPA repository (Focal)
-  apt_repository:
-    repo: "ppa:chris-lea/redis-server"
-    update_cache: true
-  when: ansible_distribution_release == 'focal'
+- name: Update apt repo and cache on all Ubuntu boxes
+  apt:
+    update_cache: yes
+    force_apt_get: yes
+    cache_valid_time: 3600
+    
+- name: Set up Redis repo
+  shell: |
+    curl https://packages.redis.io/gpg | sudo apt-key add -
+    echo "deb https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
 
 - name: Install Redis
   apt:
     name: redis-server
+    update_cache: yes
+  notify:
+    - Enable Redis
 
 - name: Install Redis Conf
   template:
