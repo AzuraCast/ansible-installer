@@ -63,12 +63,7 @@
 
 - name: Remove software
   apt:
-    name: "{{ packages }}"
-    state: absent
-    force: true
-    purge: true
-  vars:
-    packages:
+    name: 
       # Radio software
       - icecast2
       - liquidsoap
@@ -128,3 +123,12 @@
       # System packages
       - pwgen
       - lnav
+    state: absent
+    force: true
+    purge: true
+    autoremove: true
+
+- name: clean up the apt cache
+  apt:
+    autoclean: true
+  become: true
