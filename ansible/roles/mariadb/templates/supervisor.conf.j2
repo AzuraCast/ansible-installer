@@ -1,7 +1,9 @@
 [program:mariadb]
 command=/usr/sbin/mariadbd
 user=mysql
-priority=100
+priority=200
 numprocs=1
 autostart=true
 autorestart=unexpected
+stdout_logfile=/var/log/supervisor/%(program_name)s.log
+stderr_logfile=/var/log/supervisor/%(program_name)s_error.log
