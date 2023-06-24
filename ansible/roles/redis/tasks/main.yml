@@ -1,21 +1,20 @@
 ---
-- name: Update apt repo and cache on all Ubuntu boxes
-  apt:
-    update_cache: yes
-    force_apt_get: yes
-    cache_valid_time: 3600
-    
-- name: Set up Redis repo
-  shell: |
-    curl https://packages.redis.io/gpg | sudo apt-key add -
-    echo "deb https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
+- name: Import the Redis APT key
+  apt_key:
+    url: https://packages.redis.io/gpg
+    state: present
+  become: true
+
+- name: Install Redis deb repository
+  apt_repository:
+    repo: deb https://packages.redis.io/deb {{ ansible_distribution_release }} main
+    state: present
+  become: true
 
 - name: Install Redis
   apt:
     name: redis-server
     update_cache: yes
-  notify:
-    - Enable Redis
 
 - name: Install Redis Conf
   template:
