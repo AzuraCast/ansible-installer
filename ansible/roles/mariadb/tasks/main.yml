@@ -44,12 +44,10 @@
   ignore_errors: true
 
 - name: Create run subfolder
-  hosts: localhost
   become: yes
-  tasks:
-    - name: Create directory
-      file:
-        path: /run/mysqld/
-        state: directory
-        owner: mysql
-        group: mysql
+  file:
+    path: /run/mysqld/
+    state: directory
+    owner: mysql
+    group: mysql
+    mode: '0644'
