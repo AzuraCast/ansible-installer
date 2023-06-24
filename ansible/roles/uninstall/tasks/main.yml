@@ -127,6 +127,7 @@
     force: true
     purge: true
     autoremove: true
+    ignore_errors: true
 
 - name: clean up the apt cache
   apt:
