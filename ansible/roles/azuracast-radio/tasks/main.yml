@@ -5,7 +5,8 @@
 - name: Install Liquidsoap (Focal)
   include_tasks: liquidsoap.yml
   when:
-    - ansible_distribution_release == 'focal'
+    - ansible_distribution == 'Ubuntu' and ansible_distribution_release in ['focal', 'jammy']
+
 
 - name: Add Audiowaveform PPA
   apt_repository:

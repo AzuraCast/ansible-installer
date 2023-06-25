@@ -1,13 +1,20 @@
 ---
-- name: Add Redis PPA repository (Focal)
+- name: Import the Redis APT key
+  apt_key:
+    url: https://packages.redis.io/gpg
+    state: present
+  become: true
+
+- name: Install Redis deb repository
   apt_repository:
-    repo: "ppa:chris-lea/redis-server"
-    update_cache: true
-  when: ansible_distribution_release == 'focal'
+    repo: deb https://packages.redis.io/deb {{ ansible_distribution_release }} main
+    state: present
+  become: true
 
 - name: Install Redis
   apt:
     name: redis-server
+    update_cache: yes
 
 - name: Install Redis Conf
   template:

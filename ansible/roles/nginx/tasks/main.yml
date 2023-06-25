@@ -84,6 +84,13 @@
     state: link
     src: "{{ app_base }}/acme/default.crt"
 
+- name: Disable Nginx service
+  service:
+    name: "nginx"
+    enabled: false
+    state: stopped
+  ignore_errors: true
+
 - name: Install Nginx Supervisord conf
   template:
     src: supervisor.conf.j2
@@ -91,9 +98,3 @@
     force: true
     mode: 0644
 
-- name: Disable Nginx service
-  service:
-    name: "nginx"
-    enabled: false
-    state: stopped
-  ignore_errors: true

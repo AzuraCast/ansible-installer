@@ -42,3 +42,12 @@
     enabled: false
     state: stopped
   ignore_errors: true
+
+- name: Create run subfolder
+  become: yes
+  file:
+    path: /run/mysqld/
+    state: directory
+    owner: mysql
+    group: mysql
+    mode: 0755

@@ -12,7 +12,11 @@
   loop:
     - "influxdb"
     - "mysql"
+    - "mariadb"
     - "php7.4-fpm"
+    - "php8.0-fpm"
+    - "php8.1-fpm"
+    - "php8.2-fpm"
     - "nginx"
     - "redis-server"
     - "supervisor"
@@ -59,12 +63,7 @@
 
 - name: Remove software
   apt:
-    name: "{{ packages }}"
-    state: absent
-    force: true
-    purge: true
-  vars:
-    packages:
+    name: 
       # Radio software
       - icecast2
       - liquidsoap
@@ -98,9 +97,13 @@
       - nginx
       - nginx-*
 
-      # PHP 7.2
+      # PHP
       - php7.2-*
+      - php7.3-*
       - php7.4-*
+      - php8.0-*
+      - php8.1-*
+      - php8.2-*
 
       # MariaDB
       - mariadb-*
@@ -120,3 +123,13 @@
       # System packages
       - pwgen
       - lnav
+    state: absent
+    force: true
+    purge: true
+    autoremove: true
+    ignore_errors: true
+
+- name: clean up the apt cache
+  apt:
+    autoclean: true
+  become: true
