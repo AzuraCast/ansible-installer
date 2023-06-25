@@ -50,4 +50,4 @@
     state: directory
     owner: mysql
     group: mysql
-    mode: '0644'
+    mode: 0755
