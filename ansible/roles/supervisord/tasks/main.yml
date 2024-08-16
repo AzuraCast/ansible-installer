@@ -1,18 +1,19 @@
 ---
 - name: Install supervisord from repo
-  apt:
+  dnf:
     name: supervisor
 
 - name: Change supervisord configuration
   template:
     src: supervisord.conf.j2
-    dest: /etc/supervisor/supervisord.conf
+    dest: /etc/supervisord.conf
     force: true
     mode: 0644
 
 - name: Temporarily turn off supervisord
-  service:
-    name: "supervisor"
+  systemd_service:
+    name: "supervisord"
     enabled: true
     state: stopped
   ignore_errors: true
+  when: is_systemd == True

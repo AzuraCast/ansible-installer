@@ -1,6 +1,13 @@
 [program:redis]
-command=/usr/bin/redis-server /etc/redis/redis.conf
+command=redis-server /etc/redis/redis.conf
+priority=100
 user=redis
 numprocs=1
 autostart=true
-autorestart=unexpected
+autorestart=true
+
+
+stdout_logfile={{ tmp_base }}/service_redis.log
+stdout_logfile_maxbytes=5MB
+stdout_logfile_backups=5
+redirect_stderr=true

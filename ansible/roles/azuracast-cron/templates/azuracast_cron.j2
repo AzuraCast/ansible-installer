@@ -1,2 +1,2 @@
-* * * * * php {{ www_base }}/bin/console azuracast:sync:run
-0 */6 * * * tmpreaper 12h /var/azuracast/stations/*/temp
+* * * * * php {{ www_base }}/backend/bin/console azuracast:sync:run
+0 */6 * * * tmpwatch --nodirs --exclude-pattern='proxies' --exclude-pattern='service_*.log' --exclude-pattern='active_server' 12 {{ app_base }}/stations/*/temp /tmp/nginx_client /tmp/nginx_fastcgi /tmp/nginx_cache /tmp/sftpgo_temp {{ app_base }}/www_tmp

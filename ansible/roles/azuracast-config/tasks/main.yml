@@ -9,8 +9,8 @@
 
 - name: Copy existing INI file if it exists
   copy:
-    src: "{{ www_base }}/env.ini"
-    dest: "{{ app_base }}/env.ini"
+    src: "{{ www_base }}/azuracast.env"
+    dest: "{{ app_base }}/azuracast.env"
   ignore_errors: true
 
 - name: Clear temp directory
@@ -22,6 +22,8 @@
   file:
     path: "{{ www_base }}"
     state: absent
+  when: 
+    - app_env == "production"
 
 - name: Create System Folders
   file:
@@ -33,24 +35,35 @@
   loop:
     - "{{ www_base }}"
     - "{{ tmp_base }}"
-    - "{{ tmp_base }}/proxies"
     - "{{ app_base }}/stations"
-    - "{{ app_base }}/geoip"
-    - "{{ app_base }}/dbip"
+    - "{{ app_base }}/centrifugo"
+    - "{{ app_base }}/docs"
     - "{{ app_base }}/backups"
-    - "{{ app_base }}/servers"
-    - "{{ app_base }}/servers/shoutcast2"
-    - "{{ app_base }}/servers/icecast2"
-    - "{{ app_base }}/servers/stereo_tool"
-    - "{{ app_base }}/uploads"
-    - "{{ app_base }}/acme/challenges"
+    - "{{ app_base }}/dbip"
+    - "{{ app_base }}/geoip"
+    - "{{ app_base }}/sftpgo"
+    - "{{ app_base }}/storage"
+    - "{{ app_base }}/storage/uploads"
+    - "{{ app_base }}/storage/shoutcast2"
+    - "{{ app_base }}/storage/stereo_tool"
+    - "{{ app_base }}/storage/geoip"
+    - "{{ app_base }}/storage/sftpgo"
+    - "{{ app_base }}/storage/acme"
+    - "{{ app_base }}/storage/acme/challenges" 
   loop_control:
     loop_var: azuracast_config_sys_directory
 
+- name: Change tmp permissions
+  ansible.builtin.file:
+    path: "{{ tmp_base }}"
+    owner: azuracast
+    group: www-data
+    mode: '0777'
+
 - name: Write environment configuration file
   template:
-    src: env.ini.j2
-    dest: "{{ app_base }}/env.ini"
+    src: azuracast.env.j2
+    dest: "{{ app_base }}/azuracast.env"
     owner: azuracast
     group: www-data
     mode: 0644
@@ -58,8 +71,7 @@
 
 - name: Set up environment file
   ini_file:
-    dest: "{{ app_base }}/env.ini"
-    section: "configuration"
-    option: "application_env"
+    dest: "{{ app_base }}/azuracast.env"
+    option: "APPLICATION_ENV"
     value: "{{ app_env }}"
     mode: 0644

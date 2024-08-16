@@ -1,28 +1,17 @@
 ---
+
 - name: Build Icecast
   include_tasks: icecast.yml
 
-- name: Install Liquidsoap (Focal)
+- name: Install Liquidsoap
   include_tasks: liquidsoap.yml
-  when:
-    - ansible_distribution_release == 'focal'
 
-- name: Add Audiowaveform PPA
-  apt_repository:
-    repo: "ppa:chris-needham/ppa"
-    update_cache: true
+- name: Add AutoCue
+  include_tasks: autocue.yml
+
+- name: Add Master Me
+  include_tasks: masterme.yml
 
 - name: Install Audiowaveform
-  apt:
-    name: audiowaveform
-    install_recommends: false
+  include_tasks: audiowaveform.yml
 
-- name: Install Flac
-  apt:
-    name: flac
-    install_recommends: false
-
-- name: Install Vorbis-Tools
-  apt:
-    name: vorbis-tools
-    install_recommends: false

@@ -14,31 +14,43 @@ while [[ "$1" =~ ^- && ! "$1" == "--" ]]; do
 done
 if [[ "$1" == '--' ]]; then shift; fi
 
-. /etc/lsb-release
+. /etc/os-release
 
-if [[ $DISTRIB_ID != "Ubuntu" ]]; then
-  echo "Ansible installation is only supported on Ubuntu distributions."
+distros=$ID . ' ' . $ID_LIKE
+isRhelBased=false
+
+for word in $distros
+do
+    if [[ $word == "rhel" ]]; then
+      isRhelBased=true
+    fi
+done
+
+
+if [[ $isRhelBased != true ]]; then
+  echo "Ansible installation is only supported on RHEL based distributions."
   exit 0
 fi
 
-sudo apt-get update
-sudo apt-get install -q -y software-properties-common
-
-if [[ $DISTRIB_CODENAME == "focal" || $DISTRIB_CODENAME == "jammy" ]]; then
-  sudo apt-get install -q -y ansible python3-pip python3-mysqldb
-else
-  echo "Ansible installation is only supported on Ubuntu Focal (20.04) or Jammy (22.04)."
+majorVersion=$(rpm -q --queryformat '%{RELEASE}' rpm | grep -o [[:digit:]]*\$)
+echo $majorVersion
+if [[ $majorVersion -lt 8 ]]; then
+  echo "RHEL 8+ is required"
   exit 0
 fi
+
+
+sudo dnf update
+sudo dnf install -y ansible python3-pip python3-mysqlclient
 
 APP_ENV="${APP_ENV:-production}"
-UPDATE_REVISION="${UPDATE_REVISION:-94}"
+UPDATE_REVISION="${UPDATE_REVISION:-1}"
 
 echo "Updating AzuraCast (Environment: $APP_ENV, Update revision: $UPDATE_REVISION)"
 
 if [[ ${APP_ENV} == "production" ]]; then
   if [[ -d ".git" ]]; then
-    git config --global --add safe.directory /var/azuracast/ansible
+    git config --global --add safe.directory $(dirname $0)
     git reset --hard
     git pull
   else

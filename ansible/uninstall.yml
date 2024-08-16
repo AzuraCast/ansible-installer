@@ -4,7 +4,7 @@
 
   vars:
     ansible_base: "{{ playbook_dir | dirname }}"
-    app_base: "{{ ansible_base | dirname }}"
+    app_base: "/var/azuracast"
     www_base: "{{ app_base }}/www"
     tmp_base: "{{ app_base }}/www_tmp"
     app_env: "production"

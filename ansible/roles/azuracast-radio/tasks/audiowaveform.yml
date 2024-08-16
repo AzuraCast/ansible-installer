@@ -1,0 +1,6 @@
+---
+- name: install AudioWaveForm
+  dnf:
+    name: https://github.com/bbc/audiowaveform/releases/download/1.10.1/audiowaveform-1.10.1-1.el{{ansible_distribution_major_version}}.{{ansible_architecture}}.rpm
+    state: latest
+    disable_gpg_check: True

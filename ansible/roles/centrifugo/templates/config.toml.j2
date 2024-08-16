@@ -1,0 +1,27 @@
+allow_anonymous_connect_without_token = true
+api_insecure = true
+admin = true
+admin_insecure = true
+port = 6_020
+internal_port = 6_025
+websocket_disable = true
+uni_websocket = true
+uni_sse = true
+uni_http_stream = true
+allowed_origins = ["*"]
+client_connect_include_server_time = true
+
+engine = "redis"
+redis_address = "127.0.0.1:6379"
+redis_db = 0
+
+[[namespaces]]
+name = "station"
+history_size = 1
+history_ttl = "30s"
+allow_subscribe_for_client = true
+allow_subscribe_for_anonymous = true
+allow_history_for_client = true
+allow_history_for_anonymous = true
+force_recovery = true
+force_recovery_mode = "cache"

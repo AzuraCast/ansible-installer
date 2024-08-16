@@ -1,27 +1,37 @@
 ---
 - name: Install IceCast-KH-AC Dependencies
-  apt:
+  dnf:
     name: "{{ packages }}"
-    install_recommends: false
+    state: latest
   vars:
     packages:
       - libxml2
-      - libxslt1-dev
-      - libvorbis-dev
-      - libssl-dev
-      - libcurl4-openssl-dev
+      - libxslt
+      - libxml2-devel
+      - libxslt-devel
+      - libvorbis
+      - libogg
+      - libvorbis-devel
+      - libogg-devel
+      - openssl-devel
+      - libcurl-devel
       - pkg-config
 
 - name: Download IceCast-KH-AC Source
   get_url:
-    url: https://github.com/AzuraCast/icecast-kh-ac/archive/refs/tags/2.4.0-kh15-ac2.tar.gz
-    dest: "{{ app_base }}/servers/icecast2/icecast2.tar.gz"
+    url: https://github.com/karlheyes/icecast-kh/archive/refs/tags/icecast-2.4.0-kh22.tar.gz
+    dest: "/tmp/icecast2.tar.gz"
     force: true
+
+- name: ensure icecast tmp directory exists
+  file:
+    path: /tmp/icecast2
+    state: directory
 
 - name: Extract IceCast-KH-AC Source
   unarchive:
-    src: "{{ app_base }}/servers/icecast2/icecast2.tar.gz"
-    dest: "{{ app_base }}/servers/icecast2"
+    src: "/tmp/icecast2.tar.gz"
+    dest: "/tmp/icecast2"
     remote_src: true
     mode: "u=rwx,g=rx,o=rx"
     owner: "azuracast"
@@ -29,6 +39,22 @@
     extra_opts: "--strip-components=1"
 
 - name: Build IceCast-KH-AC
-  shell: "cd {{ app_base }}/servers/icecast2 && ./configure && make && make install"
+  shell: "cd /tmp/icecast2 && ./configure && make && make install"
   args:
-    chdir: "{{ app_base }}/servers/icecast2"
+    chdir: "/tmp/icecast2"
+
+- name: Download Custom Icecast Web Files
+  ansible.builtin.git:
+    repo: 'https://github.com/Yahav/icecast-kh-custom-files.git'
+    dest: /tmp/icecast-kh-custom-files
+    version: main
+
+- name: Move Custom Icecast Web Files
+  ansible.builtin.copy:
+    src: /tmp/icecast-kh-custom-files/web
+    dest: /usr/local/share/icecast/
+    remote_src: true
+  become: true
+  become_user: root
+
+  

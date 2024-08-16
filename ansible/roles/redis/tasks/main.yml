@@ -1,13 +1,8 @@
 ---
-- name: Add Redis PPA repository (Focal)
-  apt_repository:
-    repo: "ppa:chris-lea/redis-server"
-    update_cache: true
-  when: ansible_distribution_release == 'focal'
 
 - name: Install Redis
-  apt:
-    name: redis-server
+  dnf:
+    name: redis
 
 - name: Install Redis Conf
   template:
@@ -20,16 +15,32 @@
 - name: Install Redis Supervisord conf
   template:
     src: supervisor.conf.j2
-    dest: /etc/supervisor/conf.d/redis.conf
+    dest: /etc/supervisord.d/redis.conf
+    force: true
+    mode: 0644
+
+- name: Create redis run directory
+  ansible.builtin.file:
+    path: /run/redis
+    state: directory
+    mode: 0755
+    owner: redis
+    group: redis
+
+- name: Create tmpfile.d for redis to make sure /run folder created at boot
+  template:
+    src: tmpfiles.conf.j2
+    dest: /usr/lib/tmpfiles.d/redis.conf
     force: true
     mode: 0644
 
 - name: Disable Redis services
-  service:
+  systemd_service:
     name: "{{ item }}"
     enabled: false
     state: stopped
   ignore_errors: true
   with_items:
-    - "redis-server"
+    - "redis-sentinel"
     - "redis"
+  when: is_systemd == True

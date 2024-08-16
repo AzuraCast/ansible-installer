@@ -1,0 +1,34 @@
+---
+- name: Download masterme
+  get_url:
+    url: https://github.com/trummerschlunk/master_me/releases/download/1.2.0/master_me-1.2.0-linux-{{ansible_architecture}}.tar.xz
+    dest: "/tmp/masterme.tar.gz"
+    force: true
+
+- name: Extract masterme
+  unarchive:
+    src: "/tmp/masterme.tar.gz"
+    dest: "/tmp/"
+    remote_src: true
+
+
+- name: Copy masterme lv2 assets
+  ansible.builtin.copy:
+    src: /tmp/master_me-1.2.0/master_me-easy-presets.lv2/
+    dest: /usr/lib64/lv2/master_me-easy-presets.lv2/
+    owner: root
+    group: root
+
+- name: Copy masterme lv2 assets
+  ansible.builtin.copy:
+    src: /tmp/master_me-1.2.0/master_me.lv2/
+    dest: /usr/lib64/lv2/master_me.lv2/
+    owner: root
+    group: root
+
+- name: Copy masterme ladspa assets
+  ansible.builtin.copy:
+    src: /tmp/master_me-1.2.0/master_me-ladspa.so
+    dest: /usr/lib64/ladspa/master_me.so
+    owner: root
+    group: root

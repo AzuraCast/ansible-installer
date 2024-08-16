@@ -1,0 +1,19 @@
+---
+
+- name: Install Centrifugo
+  shell: "cd /tmp/ && curl -sSLf https://centrifugal.dev/install.sh | sh && sudo cp /tmp/centrifugo /usr/bin/centrifugo"
+
+- name: Copy Centrifugo config
+  template:
+    src: config.toml.j2
+    dest: "{{ app_base }}/centrifugo/config.toml"
+    force: true
+    backup: true
+    mode: 0644
+
+- name: Install Centrifugo Supervisord conf
+  template:
+    src: supervisor.conf.j2
+    dest: /etc/supervisord.d/centrifugo.conf
+    force: true
+    mode: 0644

@@ -1,7 +1,31 @@
 ---
-- name: Enable and restart Supervisord
-  service:
-    name: "supervisor"
+
+# @TODO: on a non systemd environments supervisor will not automatically run on startup.
+#        We'll need to create a /etc/rc.d/init.d/supervisord file (chmod +x) that will run it "supervisord -c /etc/supervisord.conf >/dev/null 2>&1 &"
+#        I didn't put time into it since most RHEL instances maybe aside WSL and docker will use systemd.
+
+- name: Enable and restart Supervisord service (Systemd)
+  systemd_service:
+    name: "supervisord"
     enabled: true
     state: restarted
   ignore_errors: true
+  when: is_systemd == True
+
+- name: Stop Supervisord Processes (No Systemd)
+  shell: "sudo supervisorctl stop all"
+  ignore_errors: true
+  when: is_systemd != True
+
+- name: Stop Supervisord (No Systemd)
+  shell: "sudo killall -KILL supervisord"
+  ignore_errors: true
+  when: is_systemd != True
+  
+- name: Start Supervisord (No Systemd)
+  shell: "nohup supervisord -c /etc/supervisord.conf >/dev/null 2>&1 &"
+  when: is_systemd != True
+
+- name: Pause for 30 seconds to allow all services to be initialized
+  ansible.builtin.pause:
+    seconds: 30

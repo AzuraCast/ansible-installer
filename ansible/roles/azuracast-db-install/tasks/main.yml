@@ -1,4 +1,8 @@
 ---
+
+- name: Temporary start MariaDB server
+  shell: "sudo -u mysql mariadbd >/dev/null 2>&1 &"
+
 - name: (Prod) Generate MariaDB User Password
   command: pwgen 8 -sn 1
   register: prod_mysql_user_password
@@ -8,15 +12,12 @@
   set_fact:
     mysql_user_password: "{{ prod_mysql_user_password.stdout if app_env == 'production' else dev_mysql_user_password }}"
 
-- name: Add configuration
-  template: src=my.cnf.j2 dest=/etc/mysql/conf.d/my.cnf owner=root group=root mode=0644
-
 - name: Add empty root .my.cnf (if none exists)
   template: src=root_empty_my.cnf.j2 dest=/root/.my.cnf owner=root group=root mode=0600 force=no
 
 - name: MariaDB Cleanup
   command: >-
-    mysql --defaults-extra-file=/root/.my.cnf -ne "{{ azure_db_install_sql_cleanup_query }}"
+    mariadb --defaults-extra-file=/root/.my.cnf -ne "{{ azure_db_install_sql_cleanup_query }}"
   loop:
     - "DELETE FROM mysql.user WHERE User=''"
     - "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1')"
@@ -27,7 +28,7 @@
   changed_when: false
   ignore_errors: true
 
-# MySQL Secure Installation
+
 - name: Set up AzuraCast database user
   mysql_user:
     name: azuracast
@@ -48,7 +49,7 @@
 
 - name: Reload privilege tables
   command: >-
-    mysql --defaults-extra-file=/root/.my.cnf -ne "FLUSH PRIVILEGES"
+    mariadb --defaults-extra-file=/root/.my.cnf -ne "FLUSH PRIVILEGES"
   changed_when: false
 
 # Create Database
@@ -63,8 +64,7 @@
 
 - name: Set up environment file
   ini_file:
-    dest: "{{ app_base }}/env.ini"
-    section: "configuration"
+    dest: "{{ app_base }}/azuracast.env"
     option: "{{ azure_db_install_env_ini.option }}"
     value: "{{ azure_db_install_env_ini.value }}"
     mode: 0644
@@ -81,3 +81,17 @@
       value: "{{ mysql_user_password }}"
   loop_control:
     loop_var: azure_db_install_env_ini
+
+- name: Copy azuracast.env file to www
+  copy:
+    src: "{{ app_base }}/azuracast.env"
+    dest: "{{ www_base }}/azuracast.env"
+    owner: azuracast
+    group: www-data
+
+- name: Stop MariaDB server
+  shell: "killall mariadbd"
+
+- name: Pause for 15 seconds to allow MariaDB to stop
+  ansible.builtin.pause:
+    seconds: 15

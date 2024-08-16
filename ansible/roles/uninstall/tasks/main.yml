@@ -5,27 +5,57 @@
       Running Ansible on {{ inventory_hostname }} with OS {{ ansible_distribution }} {{ ansible_distribution_release }}
       {{ ansible_distribution_version }} {{ ansible_architecture }} ({{ app_env }})
 
-- name: "Shut down all services"
-  service:
-    name: "{{ uninstall_svc_to_stop }}"
+- name: RHEL OS Check
+  fail:
+    msg: "The AzuraCast Ansible installation can only be installed onto computers running RHEL based repos."
+  when: ansible_distribution_file_variety != 'RedHat'
+
+- name: RHEL Version Check
+  fail:
+    msg: "The AzuraCast Ansible installation can only be installed onto computers running RHEL 8+."
+  when:
+    - ansible_distribution_version is version('8', '<')
+
+- shell: "ps --no-headers -o comm 1"
+  register: systemd_test_output
+
+- set_fact:
+    is_systemd:  "{{ 'True' if 'systemd' in systemd_test_output.stdout else 'False' }}"
+
+- name: Systemd check result
+  debug:
+    msg: >-
+      is_systemd: {{ is_systemd }}
+
+
+- name: Enable and restart Supervisord service (Systemd)
+  systemd_service:
+    name: "supervisord"
+    enabled: false
     state: stopped
-  loop:
-    - "influxdb"
-    - "mysql"
-    - "php7.4-fpm"
-    - "nginx"
-    - "redis-server"
-    - "supervisor"
-  loop_control:
-    loop_var: uninstall_svc_to_stop
   ignore_errors: true
+  when: is_systemd == True
+
+- name: Stop Supervisord Processes (No Systemd)
+  shell: "supervisorctl stop all"
+  ignore_errors: true
+  when: is_systemd != True
+
+- name: Stop Supervisord (No Systemd)
+  shell: "killall -KILL supervisord"
+  ignore_errors: true
+  when: is_systemd != True
+
+- name: Pause for 10 seconds to allow all services to be stopped
+  ansible.builtin.pause:
+    seconds: 10
 
 - name: Kill all processes owned by AzuraCast user
   command: pkill -9 -u azuracast
   ignore_errors: true
 
-- name: Update apt
-  apt:
+- name: Update dnf
+  dnf:
     update_cache: true
 
 - name: Remove AzuraCast User
@@ -38,19 +68,10 @@
     path: "{{ uninstall_file_to_delete }}"
     state: absent
   loop:
-    - "{{ tmp_base }}"
-    - "{{ app_base }}/servers"
+    - "{{ app_base }}"
+    - "/tmp/*"
   loop_control:
     loop_var: uninstall_file_to_delete
-
-- name: Remove PPAs
-  apt_repository:
-    repo: "{{ uninstall_repo_to_delete }}"
-    state: absent
-  loop:
-    - "ppa:avsm/ppa"
-  loop_control:
-    loop_var: uninstall_repo_to_delete
 
 - name: UFW - Turn off Firewall
   ufw:
@@ -58,65 +79,126 @@
   ignore_errors: true
 
 - name: Remove software
-  apt:
+  ignore_errors: true
+  dnf:
     name: "{{ packages }}"
     state: absent
-    force: true
-    purge: true
   vars:
     packages:
       # Radio software
-      - icecast2
-      - liquidsoap
-      - liquidsoap-plugin-*
-      - libxml2
-      - libxslt1-dev
-      - libvorbis-dev
-      - libssl-dev
-      - libcurl4-openssl-dev
-      - opam
-      - libpcre3-dev
-      - libfdk-aac-dev
-      - libmad0-dev
-      - libmp3lame-dev
-      - libtag1-dev
-      - libfaad-dev
-      - libflac-dev
-      - libogg-dev
-      - libopus-dev
-      - m4
-      - aspcud
-      - camlp4
+      - audiowaveform
+      - libxslt
+      - libxml2-devel
+      - libxslt-devel
+      - libvorbis
+      - libogg
+      - libvorbis-devel
+      - libogg-devel
+      - openssl-devel
+      - libcurl-devel
+
+      # Liquidsoap deps
+      - libpng-devel
+      - bubblewrap
+      - freetype-devel
+      - gd
+      - gd-devel
+      - libjpeg-devel
+      - portaudio-devel
+      - SDL2-devel
+      - SDL2_image-devel
+      - SDL2_ttf-devel
+      - taglib-devel
+      - libtiff-devel
+      - libX11-devel
+      - libXpm-devel
+      - file-devel
+      - libao
+      - libao-devel
+      - faad2-libs
+      - faad2-devel
+      - fdk-aac-devel
+      - ffmpeg-devel
+      - jack-audio-connection-kit
+      - jack-audio-connection-kit-devel
+      - flac-libs
+      - flac-devel
+      - lilv-libs
+      - lilv-devel
+      - opus-devel
+      - speex-devel
+      - libtheora-devel
+      - lame-devel
+      - libmad-devel
+      - pulseaudio-libs-devel
+      - libsamplerate-devel
+      - soundtouch-devel
+      - srt-devel
+      - vorbis-tools
+      - flac
+      - frei0r-devel
+      - ladspa
+      - ladspa-devel
+      - fftw2 # FOR SWH-LADSPA BUILD
+      - fftw2-devel
 
       # Supervisord
       - supervisor
-
-      # InfluxDB
-      - influxdb
 
       # Nginx
       - nginx
       - nginx-*
 
-      # PHP 7.2
-      - php7.2-*
-      - php7.4-*
+      # PHP
+      - "php"
+      - "php-cli"
+      - "php-fpm"
+      - "php-*"
+      - "php5-*"
+      - "php7-*"
+      - "php71-*"
+      - "php72-*"
+      - "php74-*"
+      - "php80-*"
+      - "php81-*"
+      - "php82-*"
+      - "php83-*"
+
+      # SFTPGO
+      - sftpgo
 
       # MariaDB
-      - mariadb-*
+      - MariaDB
+      - MariaDB-client
+      - MariaDB-server
+      - MariaDB-backup
 
       # Redis
-      - redis-server
+      - redis
 
       # UFW Firewall
       - ufw
 
       # Ansible itself
-      - python2.7
-      - python-pip
-      - python-mysqldb
+      - python3-pip
       - ansible
 
       # System packages
-      - pwgen
-      - lnav
+      - nodejs
+
+- name: disable repos
+  ignore_errors: true
+  community.general.dnf_config_manager:
+    name: "{{ remi_repo }}"
+    state: disabled
+  loop:
+    - "remi"
+    - "remi-modular"
+    - "remi-safe"
+    - "raven"
+    - "raven-multimedia"
+    - "mariadb-main"
+    - "mariadb-maxscale"
+    - "mariadb-tools"
+  loop_control:
+    loop_var: remi_repo

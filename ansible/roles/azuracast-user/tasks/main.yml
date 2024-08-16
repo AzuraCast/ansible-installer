@@ -4,6 +4,10 @@
     pwgen 8 -sn 1
   register: prod_azuracast_user_password
 
+- name: Assign User Password
+  set_fact:
+    azura_user_password: "{{ prod_azuracast_user_password.stdout if app_env == 'production' else dev_azuracast_user_password }}"
+
 - name: Create Groups
   group:
     name: "{{ azuracast_user_sys_group }}"
@@ -20,9 +24,16 @@
     home: "{{ app_base }}"
     comment: "AzuraCast"
     shell: /bin/bash
-    groups: 'sudo,admin,www-data'
-    password: "{{ prod_azuracast_user_password.stdout|password_hash('sha512') }}"
+    groups: 'wheel,admin,www-data'
+    password: "{{ prod_azuracast_user_password.stdout|password_hash('sha512') if app_env == 'production' else dev_azuracast_user_password|password_hash('sha512') }}"
   notify: send user notification
+
+# @TODO: is this really needed? its quite dangerous!
+- name: sudo without password for azuracast
+  copy:
+    content: 'azuracast ALL=(ALL:ALL) NOPASSWD:ALL'
+    dest: /etc/sudoers.d/azuracast_nopasswd
+    mode: 0440
 
 - name: Modify www-data User
   user:

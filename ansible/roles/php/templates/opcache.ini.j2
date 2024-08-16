@@ -1,0 +1,9 @@
+[opcache]
+opcache.enable=1
+opcache.enable_cli=1
+opcache.jit_buffer_size=100M
+opcache.jit=tracing
+
+{% if app_env == "production" %}
+opcache.revalidate_freq=60
+{% endif %}

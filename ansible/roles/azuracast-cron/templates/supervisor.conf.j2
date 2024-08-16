@@ -1,6 +1,11 @@
 [program:cron]
-command=/usr/sbin/cron -f
+command=crond -n
 priority=600
 numprocs=1
 autostart=true
-autorestart=unexpected
+autorestart=true
+
+stdout_logfile={{ tmp_base }}/service_cron.log
+stdout_logfile_maxbytes=5MB
+stdout_logfile_backups=5
+redirect_stderr=true

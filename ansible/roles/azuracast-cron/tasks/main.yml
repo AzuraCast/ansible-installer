@@ -1,9 +1,9 @@
 ---
 - name: Install cron-related packages
-  apt:
+  dnf:
     name:
-      - cron
-      - tmpreaper
+      - cronie
+      - tmpwatch
 
 - name: Generate Cron Template
   template:
@@ -24,13 +24,14 @@
 - name: Install Cron Supervisord conf
   template:
     src: supervisor.conf.j2
-    dest: /etc/supervisor/conf.d/cron.conf
+    dest: /etc/supervisord.d/cron.conf
     force: true
     mode: 0644
 
 - name: Disable Cron service
-  service:
-    name: "cron"
+  systemd_service:
+    name: "crond"
     enabled: false
     state: stopped
   ignore_errors: true
+  when: is_systemd == True

@@ -1,37 +1,68 @@
 ---
+
 - hosts: all
   become: true
 
+  collections:
+    - community.general
+    
   vars:
     ansible_base: "{{ playbook_dir | dirname }}"
-    app_base: "{{ ansible_base | dirname }}"
+    app_base: "/var/azuracast" # IF YOU CHANGE THAT, BAD THINGS HAPPEN, CHECK TODO.md
     www_base: "{{ app_base }}/www"
     tmp_base: "{{ app_base }}/www_tmp"
     app_env: "production"
     update_mode: false
     dev_azuracast_user_password: "azuracast"
     dev_mysql_user_password: "azuracast"
-
-  environment:
-    DEBIAN_FRONTEND: noninteractive
+    azuracast_repo: "Azuracast/AzuraCast"
+    azuracast_ref: "heads/" 
+    azuracast_ver: "main"
+    azuracast_dev_repo: "username/AzuraCast" # Your repo name
+    azuracast_dev_ver: "dev" # Your repo development branch
 
   roles:
-    - init
-    - azuracast-user
-    - azuracast-config
-    - azuracast-radio
-    - supervisord
-    - nginx
-    - php
-    - redis
-    - beanstalkd
-    - sftpgo
-    - mariadb
-    - ufw
-    - dbip
-    - composer
-    - services
-    - azuracast-db-install
-    - azuracast-build
-    - azuracast-setup
-    - azuracast-cron
+    - role: init
+      tags: init
+    - role: azuracast-user
+      tags: azuracast-user
+    - role: azuracast-config
+      tags: azuracast-config
+    - role: azuracast-radio
+      tags: azuracast-radio
+    - role: supervisord
+      tags: supervisord
+    - role: nginx
+      tags: nginx
+    - role: php
+      tags: php
+    - role: redis
+      tags: redis
+    - role: centrifugo
+      tags: centrifugo
+    - role: sftpgo
+      tags: sftpgo
+    - role: mariadb
+      tags: mariadb
+    - role: ufw
+      tags: ufw
+    - role: dbip
+      tags: dbip
+    - role: composer
+      tags: composer
+    - role: azuracast-db-install
+      tags: azuracast-db-install
+    - role: services
+      tags: services
+      vars:
+        run: "first"
+    - role: azuracast-build
+      tags: azuracast-build
+    - role: azuracast-setup
+      tags: azuracast-setup
+    - role: azuracast-cron
+      tags: azuracast-cron
+    - role: services # We need this again to start newly added services
+      tags: services
+      vars:
+        run: "second"

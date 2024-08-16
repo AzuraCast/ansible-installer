@@ -6,7 +6,7 @@
     mode: "a+x"
   loop:
     - "{{ ansible_base }}/update.sh"
-    - "{{ www_base }}/bin/console"
+    - "{{ www_base }}/backend/bin/console"
   loop_control:
     loop_var: azuracast_setup_update_script
 
@@ -14,18 +14,19 @@
   become: true
   become_user: azuracast
   shell: >-
-    php {{ www_base }}/bin/console azuracast:setup
+    php {{ www_base }}/backend/bin/console azuracast:setup
   when: not update_mode|bool
-
-- name: Migrate Legacy Configuration (Update Mode)
-  become: true
-  become_user: azuracast
-  shell: >-
-    php {{ www_base }}/bin/console azuracast:config:migrate
-  when: update_mode|bool
 
 - name: Run AzuraCast Setup (Update Mode)
   become: true
   become_user: azuracast
-  shell: php {{ www_base }}/bin/console azuracast:setup --update
+  shell: >-
+    php {{ www_base }}/backend/bin/console azuracast:setup --update
   when: update_mode|bool
+
+- name: Install PHP Jobs  Supervisord conf
+  template:
+    src: supervisor.conf.j2
+    dest: /etc/supervisord.d/php-jobs.conf
+    force: false
+    mode: 0644

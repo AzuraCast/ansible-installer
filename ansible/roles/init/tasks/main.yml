@@ -1,59 +1,142 @@
 ---
+
 - name: Running context
   debug:
     msg: >-
       Running Ansible on {{ inventory_hostname }} with OS {{ ansible_distribution }}
       {{ ansible_distribution_release }} {{ ansible_distribution_version }} {{ ansible_architecture }} ({{ app_env }})"
 
-- name: Ubuntu OS Check
+- name: RHEL OS Check
   fail:
-    msg: "The AzuraCast Ansible installation can only be installed onto computers running Ubuntu."
-  when: ansible_distribution != 'Ubuntu'
+    msg: "The AzuraCast Ansible installation can only be installed onto computers running RHEL based repos."
+  when: ansible_distribution_file_variety != 'RedHat'
 
-- name: Ubuntu Version Check
+- name: RHEL Version Check
   fail:
-    msg: "The AzuraCast Ansible installation can only be installed onto computers running Ubuntu 20.04 LTS (Focal) or 22.04 LTS (Jammy)."
+    msg: "The AzuraCast Ansible installation can only be installed onto computers running RHEL 8+."
   when:
-    - ansible_distribution_release != 'focal'
-    - ansible_distribution_release != 'jammy'
+    - ansible_distribution_version is version('8', '<')
 
-- name: Add multiverse repository
-  apt_repository:
-    repo: "{{ init_repo_to_add }}"
-    update_cache: false
-  when:
-    - ansible_architecture == 'x86_64' or ansible_architecture == 'i386'
+- shell: "ps --no-headers -o comm 1"
+  register: systemd_test_output
+
+- set_fact:
+    is_systemd:  "{{ 'True' if 'systemd' in systemd_test_output.stdout else 'False' }}"
+
+- name: Systemd check result
+  debug:
+    msg: >-
+      is_systemd: {{ is_systemd }}
+
+- name: Put SELinux in permissive mode, logging actions that would be blocked.
+  selinux:
+    policy: targeted
+    state: permissive
+  ignore_errors: true
+
+- name: Import EPEL GPG key.
+  rpm_key:
+    key: /etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-{{ ansible_distribution_major_version }}
+    state: present
+
+- name: Import remi GPG key.
+  rpm_key:
+    key: https://rpms.remirepo.net/enterprise/{{ ansible_distribution_major_version }}/RPM-GPG-KEY-remi
+    state: present
+
+# - name: install EPEL
+#   dnf:
+#     name: epel-release
+#     state: latest
+
+
+- name: install Raven Multimedia Repo
+  dnf:
+    name: https://pkgs.sysadmins.ws/el{{ansible_distribution_major_version}}/base/{{ansible_architecture}}/raven-release.el{{ansible_distribution_major_version}}.noarch.rpm
+    state: latest
+    disable_gpg_check: True
+
+- name: Ensure the Raven repo is enabled
+  community.general.dnf_config_manager:
+    name: "{{ raven_repo }}"
+    state: enabled
   loop:
-    - "deb http://archive.ubuntu.com/ubuntu {{ ansible_distribution_release }} multiverse"
-    - "deb-src http://archive.ubuntu.com/ubuntu/ {{ ansible_distribution_release }} multiverse"
-    - "deb http://archive.ubuntu.com/ubuntu {{ ansible_distribution_release }}-updates multiverse"
-    - "deb-src http://archive.ubuntu.com/ubuntu/ {{ ansible_distribution_release }}-updates multiverse"
+    - "raven"
+    - "raven-extras"
+    - "raven-multimedia"
   loop_control:
-    loop_var: init_repo_to_add
+    loop_var: raven_repo
 
-- name: Update apt
-  apt:
-    update_cache: true
+- name: Ensure the EPEL repo is enabled
+  community.general.dnf_config_manager:
+    name:
+      - epel
+    state: enabled
+
+- name: install Remi PHP Repo
+  dnf:
+    name: https://rpms.remirepo.net/enterprise/remi-release-{{ ansible_distribution_major_version }}.rpm
+    state: latest
+
+- name: Ensure the Remi repo is enabled
+  community.general.dnf_config_manager:
+    name: "{{ remi_repo }}"
+    state: enabled
+  loop:
+    - "remi"
+    - "remi-modular"
+    - "remi-safe"
+  loop_control:
+    loop_var: remi_repo
+
+- name: Install Powertools for RHEL 8
+  community.general.dnf_config_manager:
+    name:
+      - powertools
+    state: enabled
+  when: ansible_facts['distribution_major_version'] == "8"
+
+- name: Install Powertools for RHEL > 8
+  community.general.dnf_config_manager:
+    name:
+      - crb
+    state: enabled
+  when: ansible_facts['distribution_major_version'] | int > 8
+
+
+- name: upgrade all packages
+  dnf:
+    name: "*"
+    enablerepo:
+      -epel
+    state: latest
 
 - name: Install system packages
-  apt:
+  dnf:
     name: "{{ packages }}"
+    state: latest
   vars:
     packages:
-      - apt-transport-https
       - curl
       - wget
       - tar
-      - build-essential
+      - "@development tools"
       - pwgen
       - whois
       - gzip
       - zip
       - unzip
       - zstd
-      - software-properties-common
       - python3-pip
+      - ca-certificates
+      - rsync
+
 
 - name: Update pip components
   pip:
     name: pip
+
+
+- name: Make sure supervisord jobs are stopped if exists
+  shell: "supervisorctl stop all"
+  ignore_errors: true

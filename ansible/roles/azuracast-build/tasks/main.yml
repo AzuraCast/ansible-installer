@@ -1,9 +1,14 @@
 ---
-- name: Install NodeJS and NPM
-  shell: curl -L https://raw.githubusercontent.com/tj/n/master/bin/n -o n && bash n lts
-  args:
-    warn: false
-    chdir: "/tmp"
+- name: Reset nodejs module
+  shell: dnf module reset nodejs -y
+
+- name: Enable nodejs 20 module
+  shell: dnf module enable nodejs:20 -y
+
+- name: "Install nodejs"
+  dnf:
+    name: nodejs
+    state: present
 
 - name: Set permissions for folders
   file: path="{{ item }}" state=directory owner=azuracast group=www-data mode=0744
@@ -11,7 +16,7 @@
     - "{{ www_base }}/frontend/node_modules"
     - "{{ www_base }}/web/static"
     - "{{ www_base }}/web/static/dist"
-    - "{{ www_base }}/web/static/webpack_dist"
+    - "{{ www_base }}/web/static/vite_dist"
 
 - name: Pull Node Dependencies
   become: true
@@ -19,23 +24,44 @@
   command: >-
     npm ci
   args:
-    chdir: "{{ www_base }}/frontend"
+    chdir: "{{ www_base }}"
 
-- name: Build AzuraCast Frontend Scripts
+
+- name: Build AzuraCast Frontend Scripts (Production)
   become: true
   become_user: azuracast
   command: >-
-    npm run build
+    node ./node_modules/vite/bin/vite.js build
   args:
-    chdir: "{{ www_base }}/frontend"
+    chdir: "{{ www_base }}"
+  when: 
+    - app_env == "production"
+  
+- name: Remove file (delete file)
+  ansible.builtin.file:
+    path: /etc/supervisord.d/vite.conf
+    state: absent
+  when: 
+    - app_env == "production"
+  ignore_errors: true
+
+- name: Install Vite Supervisor (Development)
+  template:
+    src: vite_supervisor.conf.j2
+    dest: /etc/supervisord.d/vite.conf
+    force: true
+    mode: 0644
+  when: 
+    - app_env == "development"
 
 - name: Set permissions of generated frontend content
   command: >-
     {{ azuracast_build_perm_command }}
   loop:
     - "chown -R azuracast:www-data {{ www_base }}"
-    - "find {{ www_base }} -type d -exec chmod 755 {} \\;"
-    - "find {{ www_base }} -type f -exec chmod 644 {} \\;"
+    - "find  {{ www_base }} -type d -exec chmod 775 {} \\;"
+    - "find {{ www_base }} -type f -exec chmod 664 {} \\;"
+    - "find -L {{ www_base }}/node_modules/.bin -type f -exec chmod +x {} \\;"
   loop_control:
     loop_var: azuracast_build_perm_command
   # Note: Don't add warn: false here, it's incompatible with the earlier Ansibles used in 16.04/18.04.

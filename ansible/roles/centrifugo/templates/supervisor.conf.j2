@@ -1,14 +1,15 @@
-[program:sftpgo]
-directory={{ app_base }}/sftpgo
-command=sftpgo --config-dir={{ app_base }}/sftpgo serve -l ""
+[program:centrifugo]
+command=centrifugo -c {{ app_base }}/centrifugo/config.toml
 user=azuracast
 priority=700
 numprocs=1
 autostart=true
 autorestart=true
+
 stopasgroup=true
 killasgroup=true
-stdout_logfile={{ tmp_base }}/service_sftpgo.log
+
+stdout_logfile={{ tmp_base }}/service_centrifugo.log
 stdout_logfile_maxbytes=5MB
 stdout_logfile_backups=5
 redirect_stderr=true

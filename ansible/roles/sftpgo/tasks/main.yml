@@ -1,31 +1,73 @@
 ---
-- name: Add SFTPGo PPA repository
-  apt_repository:
-    repo: "ppa:sftpgo/sftpgo"
-    update_cache: true
+- name: Add SFTPGo Repo
+  ansible.builtin.yum_repository:
+    name: sftpgo
+    description: SFTPGo Repo
+    baseurl: https://ftp.osuosl.org/pub/sftpgo/yum/{{ansible_architecture}}/
+    enabled: true
+    gpgcheck: no
 
 - name: Install SFTPGo
-  apt:
+  dnf:
     name: "sftpgo"
     state: present
 
 - name: Configure SFTPGo
   template:
     src: sftpgo.json.j2
-    dest: "/etc/sftpgo/sftpgo.json"
+    dest: "{{ app_base }}/sftpgo/sftpgo.json"
     force: true
     mode: 0644
+
+- name: Create SFTPGo Folders
+  file:
+    path: "{{ azuracast_config_sys_directory }}"
+    state: directory
+    owner: azuracast
+    group: azuracast
+    mode: 0775
+  loop:
+    - "{{ app_base }}/sftpgo/persist"
+    - "{{ app_base }}/sftpgo/backups"
+    - "{{ app_base }}/sftpgo/env.d"
+  loop_control:
+    loop_var: azuracast_config_sys_directory
+
+- name: Create db file
+  ansible.builtin.file:
+    state: touch
+    path: "{{ app_base }}/sftpgo/sftpgo.db"
+    owner: azuracast
+    group: azuracast
+
+- name: Change tmp permissions
+  ansible.builtin.file:
+    state: directory
+    path: "/tmp/sftpgo_temp"
+    owner: azuracast
+    group: www-data
+    mode: '0777'
 
 - name: Install SFTPGo Supervisord conf
   template:
     src: supervisor.conf.j2
-    dest: /etc/supervisor/conf.d/sftpgo.conf
+    dest: /etc/supervisord.d/sftpgo.conf
     force: true
     mode: 0644
 
 - name: Disable SFTPGo service
-  service:
+  systemd_service:
     name: "sftpgo"
     enabled: false
     state: stopped
   ignore_errors: true
+  when: is_systemd == True
+
+- name: remove existing files
+  ansible.builtin.shell: "rm -rf {{ app_base }}/storage/sftpgo/id_*"
+
+- name: Generate ssh keys
+  ansible.builtin.shell: "ssh-keygen -t rsa -b 4096 -f {{ app_base }}/storage/sftpgo/id_rsa -q -N '' && ssh-keygen -t ecdsa -b 521 -f {{ app_base }}/storage/sftpgo/id_ecdsa -q -N '' && ssh-keygen -t ed25519 -f {{ app_base }}/storage/sftpgo/id_ed25519 -q -N ''"
+
+- name: chown key files
+  ansible.builtin.shell: "chown azuracast:azuracast {{ app_base }}/storage/sftpgo/*"

@@ -1,0 +1,28 @@
+[program:php-nowplaying]
+command=php {{ www_base }}/backend/bin/console azuracast:sync:nowplaying
+user=azuracast
+priority=600
+numprocs=1
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+stdout_logfile={{ tmp_base }}/php-nowplaying.log
+stdout_logfile_maxbytes=5MB
+stdout_logfile_backups=5
+redirect_stderr=true
+
+
+[program:php-worker]
+command=php {{ www_base }}/backend/bin/console queue:process --worker-name=app_worker_0
+user=azuracast
+priority=600
+numprocs=1
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+stdout_logfile={{ tmp_base }}/php-worker.log
+stdout_logfile_maxbytes=5MB
+stdout_logfile_backups=5
+redirect_stderr=true

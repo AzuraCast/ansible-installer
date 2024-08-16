@@ -1,58 +1,71 @@
 ---
-- name: Add PHP PPA repository
-  apt_repository:
-    repo: "ppa:ondrej/php"
-    update_cache: true
-
 - name: Remove Old PHP Libraries
-  apt:
+  dnf:
     name: "{{ packages }}"
     state: absent
   vars:
     packages:
+      - "php"
+      - "php-cli"
+      - "php-fpm"
       - "php5-*"
-      - "php7.0-*"
-      - "php7.1-*"
-      - "php7.2-*"
-      - "php7.4-*"
-      - "php8.0-*"
-      - "php8.1-*"
+      - "php7-*"
+      - "php71-*"
+      - "php72-*"
+      - "php74-*"
+      - "php80-*"
+      - "php81-*"
+      - "php82-*"
+      - "php83-*"
   ignore_errors: true
+
 
 - name: Set PHP Version
   set_fact:
-    php_version: 8.2
+    php_version: 8.3
+
+- name: Reset php {{ php_version }} Remi module
+  shell: dnf module reset php -y
+
+- name: Enable php {{ php_version }} Remi module
+  shell: dnf module enable php:remi-{{ php_version }} -y
 
 - name: "Install PHP {{ php_version }}"
-  apt:
+  dnf:
     name: "{{ packages }}"
     state: present
   vars:
     packages:
-      - "php{{ php_version }}-fpm"
-      - "php{{ php_version }}-cli"
-      - "php{{ php_version }}-gd"
-      - "php{{ php_version }}-curl"
-      - "php{{ php_version }}-xml"         # IceCast XML config
-      - "php{{ php_version }}-zip"         # Composer installs
-      - "php{{ php_version }}-mysqlnd"     # MySQL Native Driver (Doctrine)
-      - "php{{ php_version }}-mbstring"    # Codeception Tests
-      - "php{{ php_version }}-intl"        # Localization
-      - "php{{ php_version }}-redis"       # Cache
-      - "php{{ php_version }}-bcmath"      # BigInteger
-      - "php{{ php_version }}-gmp"         # BigInteger and PHP-IP
-      - "php{{ php_version }}-maxminddb"   # Maxmind (GeoIP) DB native ext
+      - "php-fpm"
+      - "php-cli"
+      - "php-common"
+      - "php-gd"
+      - "php-curl"
+      - "php-pdo"
+      - "php-ffi"
+      - "php-xml"         # IceCast XML config
+      - "php-zip"         # Composer installs
+      - "php-mysqlnd"     # MySQL Native Driver (Doctrine)
+      - "php-mbstring"    # Codeception Tests
+      - "php-intl"        # Localization
+      - "php-redis"       # Cache
+      - "php-bcmath"      # BigInteger
+      - "php-gmp"         # BigInteger and PHP-IP
+      - "php-maxminddb"   # Maxmind (GeoIP) DB native ext
+      - "php-opcache"   # Maxmind (GeoIP) DB native ext
+      - "php-sodium"
+
 
 - name: Configure PHP FPM Pool
   template:
     src: fpmpool.j2
-    dest: "/etc/php/{{ php_version }}/fpm/pool.d/www.conf"
+    dest: "/etc/php-fpm.conf"
     force: true
     mode: 0644
 
-- name: Configure php-fpm php.ini
+- name: Configure php.ini
   ini_file:
-    dest: "/etc/php/{{ php_version }}/fpm/php.ini"
+    dest: "/etc/php.ini"
     section: PHP
     option: "{{ php_init_option.option }}"
     value: "{{ php_init_option.value }}"
@@ -64,27 +77,46 @@
       value: "On"
     - option: "upload_max_filesize"
       value: "50M"
+    - option: "memory_limit"
+      value: "256M"
+    - option: "max_execution_time"
+      value: "30"
   loop_control:
     loop_var: php_init_option
 
-- name: Configure php-cli php.ini
+- name: Copy opcache configs
+  template:
+    src: opcache.ini.j2
+    dest: /etc/php.d/90-opcache.ini
+    force: true
+    mode: 0644
+
+- name: Copy opcache configs
+  template:
+    src: opcache.ini.j2
+    dest: /etc/php-zts.d/90-opcache.ini
+    force: true
+    mode: 0644
+
+- name: Configure ffi
   ini_file:
-    dest: "/etc/php/{{ php_version }}/cli/php.ini"
-    section: PHP
-    option: "short_open_tag"
-    value: "On"
+    dest: "/etc/php.ini"
+    section: ffi
+    option: "ffi.enable"
+    value: "true"
     mode: 0644
 
 - name: Install PHP-FPM Supervisord conf
   template:
     src: supervisor.conf.j2
-    dest: /etc/supervisor/conf.d/php-fpm.conf
+    dest: /etc/supervisord.d/php-fpm.conf
     force: true
     mode: 0644
 
 - name: Disable PHP-FPM service
-  service:
-    name: "php{{ php_version }}-fpm"
+  systemd_service:
+    name: "php-fpm"
     enabled: false
     state: stopped
   ignore_errors: true
+  when: is_systemd == True

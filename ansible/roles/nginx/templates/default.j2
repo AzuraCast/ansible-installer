@@ -1,16 +1,32 @@
+upstream centrifugo {
+    server 127.0.0.1:6020;
+}
+
 upstream php-fpm-internal {
-    server unix:/var/run/php-fpm-internal.sock;
+    server unix:/run/php-fpm-internal.sock;
 }
 
 upstream php-fpm-www {
-    server unix:/var/run/php-fpm-www.sock;
+    server unix:/run/php-fpm-www.sock;
 }
+
+{% if app_env == "development" %}
+upstream vite {
+    server 127.0.0.1:5173;
+}
+{% endif %}
+
+
 
 server {
     listen 127.0.0.1:6010;
 
     root {{ app_base }}/www/web;
     index index.php;
+
+    access_log off;
+    error_log off;
+    server_name localhost;
 
     # Default clean URL routing
     location / {
@@ -29,6 +45,7 @@ server {
         fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
         fastcgi_param DOCUMENT_ROOT $realpath_root;
         include fastcgi_params;
+        fastcgi_param IS_INTERNAL true;
 
         fastcgi_read_timeout 600;
         fastcgi_buffering off;
@@ -39,12 +56,18 @@ server {
 
 server {
     listen 80;
-    listen 443 default_server ssl;
+    listen 443 default_server http2 ssl;
     listen [::]:80;
-    listen [::]:443 default_server ssl;
+    listen [::]:443 default_server http2 ssl;
 
-    ssl_certificate    {{ app_base }}/acme/ssl.crt;
-    ssl_certificate_key    {{ app_base }}/acme/ssl.key;
+    ssl_certificate    {{ app_base }}/storage/acme/ssl.crt;
+    ssl_certificate_key    {{ app_base }}/storage/acme/ssl.key;
+
+    ssl_buffer_size 4k;
+    
+    ssl_session_timeout  10m;
+    ssl_ciphers PROFILE=SYSTEM;
+    ssl_prefer_server_ciphers on;
 
     root {{ app_base }}/www/web;
     index index.php;
@@ -60,8 +83,15 @@ server {
 
     # LetsEncrypt handling
     location /.well-known/acme-challenge {
-        alias {{ app_base }}/acme/challenges;
+        alias {{ app_base }}/storage/acme/challenges;
         try_files $uri =404;
+    }
+
+    # Built-in docs
+    location /docs {
+        alias {{ app_base }}/docs;
+        expires 1d;
+        index index.html;
     }
 
     # Serve a static version of the nowplaying data for non-PHP-blocking delivery.
@@ -73,6 +103,32 @@ server {
         try_files $uri =404;
     }
 
+    # Websocket/SSE Now Playing Updates
+    location ~ ^/api/live/nowplaying/(\w+)$ {
+        # HTTP 1.1 support
+        proxy_http_version 1.1;
+        proxy_set_header Origin $http_origin;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $proxy_connection;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
+        proxy_set_header X-Forwarded-Ssl $proxy_x_forwarded_ssl;
+        proxy_set_header X-Forwarded-Port $proxy_x_forwarded_port;
+
+        # Mitigate httpoxy attack (see README for details)
+        proxy_set_header Proxy "";
+
+        proxy_buffering           off;
+        proxy_ignore_client_abort off;
+        proxy_send_timeout        21600;
+        proxy_read_timeout        21600;
+
+        proxy_pass http://centrifugo/connection/uni_$1?$args;
+    }
+
+    # Default clean URL routing
     location / {
         try_files $uri @clean_url;
     }
@@ -87,16 +143,43 @@ server {
     }
 
     location /static/uploads {
-        rewrite ^(.+)\.(?:\w+)\.(js|css|png|jpg)$ $1.$2 last;
+        rewrite ^(.+)\.(?:\w+)\.(js|css|png|jpg|webp)$ $1.$2 last;
 
-        alias /var/azuracast/uploads;
+        alias {{ app_base }}/storage/uploads;
         try_files $uri =404;
     }
 
     location /static/dist {
         expires 365d;
     }
-    location /static/webpack_dist {
+
+
+    {% if app_env == "development" %}
+
+    location /static/vite_dist {
+        include proxy_params;
+        proxy_pass http://vite$request_uri;
+    }
+
+    {% else  %}
+
+    location /static/vite_dist {
+        expires 365d;
+    }
+    
+    {% endif %}
+
+
+    location /static/icons {
+        expires 365d;
+    }
+
+    location /static/img {
+        expires 7d;
+    }
+
+    location /favicon.ico {
+        add_header Access-Control-Allow-Origin *;
         expires 365d;
     }
 
@@ -113,7 +196,15 @@ server {
         fastcgi_read_timeout 1800;
         fastcgi_buffering off;
 
+        fastcgi_cache app;
+        fastcgi_cache_use_stale timeout updating;
+
         internal;
+    }
+
+    # Return 404 for all other php files not matching the front controller
+    location ~ \.php$ {
+        return 404;
     }
 
     # deny access to .htaccess files, if Apache's document root
@@ -125,13 +216,22 @@ server {
     # Internal handlers used by the application to perform X-Accel-Redirect's for higher performance.
     location /internal/backups/ {
         internal;
+        add_header Access-Control-Allow-Origin "$upstream_http_access_control_allow_origin";
         alias {{ app_base }}/backups/;
+    }
+
+    location /internal/storage/ {
+        internal;
+        add_header Access-Control-Allow-Origin "$upstream_http_access_control_allow_origin";
+        alias {{ app_base }}/storage/;
     }
 
     location /internal/stations/ {
         internal;
+        add_header Access-Control-Allow-Origin "$upstream_http_access_control_allow_origin";
         alias {{ app_base }}/stations/;
     }
 
     include {{ app_base }}/stations/*/config/nginx.conf;
+    include /etc/nginx/azuracast.conf.d/*.conf;
 }

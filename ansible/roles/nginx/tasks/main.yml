@@ -1,41 +1,23 @@
 ---
 - name: Uninstall web server packages that may conflict with nginx
-  apt:
+  dnf:
     name:
-      - apache2
+      - httpd
       - lighttpd
     state: absent
 
-- name: Unhold nginx-related packages for updates
-  dpkg_selections:
-    name: "{{ nginx_pkg_select }}"
-    selection: install
-  loop:
-    - "nginx"
-    - "nginx-common"
-    - "nginx-extras"
-  loop_control:
-    loop_var: nginx_pkg_select
 
 - name: Remove any older nginx
-  apt:
+  dnf:
     name:
       - nginx
-      - nginx-common
-      - nginx-extras
+      - nginx-*
     state: absent
-    purge: true
 
 - name: Install nginx
-  apt:
+  dnf:
     name:
       - nginx
-      - nginx-common
-
-- name: Remove default nginx site symlink
-  file:
-    path: "/etc/nginx/sites-enabled/default"
-    state: absent
 
 - name: Add nginx global config
   template:
@@ -48,15 +30,17 @@
 - name: Add app-specific nginx site
   template:
     src: default.j2
-    dest: /etc/nginx/sites-available/00-azuracast
+    dest: /etc/nginx/conf.d/00-azuracast.conf
     force: true
     mode: 0644
 
-- name: Link app-specific nginx site
-  file:
-    path: "/etc/nginx/sites-enabled/00-azuracast"
-    state: link
-    src: "/etc/nginx/sites-available/00-azuracast"
+- name: Copy proxy_params.conf
+  template:
+    src: proxy_params.conf.j2
+    dest: /etc/nginx/proxy_params
+    force: true
+    mode: 0644
+
 
 - name: Turn sendfile off on nginx for local development
   replace:
@@ -65,35 +49,68 @@
     replace: 'sendfile off;'
   when: app_env == "development"
 
+
+- name: Create Temp Folders
+  file:
+    path: "{{ nginx_tmp_dirs }}"
+    state: directory
+  loop:
+    - "/tmp/nginx_client"
+    - "/tmp/nginx_fastcgi"
+    - "/tmp/nginx_cache"
+  loop_control:
+    loop_var: nginx_tmp_dirs
+
+- name: Create azuracast.conf.d Folders
+  file:
+    path: /etc/nginx/azuracast.conf.d/
+    state: directory
+
+- name: Change M3U8 MIME type to "application/x-mpegurl" for broader compatibility.
+  shell: "sed -i 's#application/vnd.apple.mpegurl#application/x-mpegurl#' /etc/nginx/mime.types"
+  
 - name: Create self-signed SSL cert
   command: >-
     openssl req -new -nodes -x509 -subj "/C=US/ST=Texas/L=Austin/O=IT/CN=${ansible_fqdn}" -days 3650
-    -keyout {{ app_base }}/acme/default.key -out {{ app_base }}/acme/default.crt -extensions v3_ca
+    -keyout {{ app_base }}/storage/acme/default.key -out {{ app_base }}/storage/acme/default.crt -extensions v3_ca
   args:
-    creates: "{{ app_base }}/acme/default.crt"
+    creates: "{{ app_base }}/storage/acme/default.crt"
 
+- name: Change key file ownership
+  ansible.builtin.file:
+    path: "{{ app_base }}/storage/acme/default.key"
+    owner: azuracast
+    group: azuracast
+
+- name: Change crt file ownership
+  ansible.builtin.file:
+    path: "{{ app_base }}/storage/acme/default.crt"
+    owner: azuracast
+    group: azuracast
+    
 - name: Link self-signed SSL key if applicable.
   file:
-    path: "{{ app_base }}/acme/ssl.key"
+    path: "{{ app_base }}/storage/acme/ssl.key"
     state: link
-    src: "{{ app_base }}/acme/default.key"
+    src: "{{ app_base }}/storage/acme/default.key"
 
 - name: Link self-signed SSL cert if applicable.
   file:
-    path: "{{ app_base }}/acme/ssl.crt"
+    path: "{{ app_base }}/storage/acme/ssl.crt"
     state: link
-    src: "{{ app_base }}/acme/default.crt"
+    src: "{{ app_base }}/storage/acme/default.crt"
 
 - name: Install Nginx Supervisord conf
   template:
     src: supervisor.conf.j2
-    dest: /etc/supervisor/conf.d/nginx.conf
+    dest: /etc/supervisord.d/nginx.conf
     force: true
     mode: 0644
 
 - name: Disable Nginx service
-  service:
+  systemd_service:
     name: "nginx"
     enabled: false
     state: stopped
   ignore_errors: true
+  when: is_systemd == True
