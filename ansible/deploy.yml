@@ -17,7 +17,7 @@
     dev_mysql_user_password: "azuracast"
     azuracast_repo: "Yahav/AzuraCast"
     azuracast_ref: "heads/" 
-    azuracast_ver: "main"
+    azuracast_ver: "dev"
     azuracast_dev_repo: "Yahav/AzuraCast" # Your repo name
     azuracast_dev_ver: "dev" # Your repo development branch
 
