@@ -58,4 +58,4 @@
     enabled: false
     state: stopped
   ignore_errors: true
-  when: app_env == "development" && is_systemd == True
+  when: app_env == "development" and is_systemd == True
