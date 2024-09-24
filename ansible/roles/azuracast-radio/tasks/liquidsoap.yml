@@ -12,7 +12,7 @@
 
 - name: Install FFMPEG 6x
   dnf:
-    name: ffmpeg-devel-6.1.1-2.el9
+    name: compat-ffmpeg6-devel.x86_64
     enablerepo: raven-extras
     allow_downgrade: true
 
