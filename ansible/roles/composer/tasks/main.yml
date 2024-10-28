@@ -5,6 +5,8 @@
     | php -- --install-dir=/usr/bin --filename=composer
 
 
+# =========== Production =============
+
 - name: Download Azuracast Release
   get_url:
     url: "https://github.com/{{azuracast_repo}}/archive/refs/{{azuracast_ref}}/{{azuracast_ver}}.tar.gz"
@@ -12,19 +14,6 @@
     force: true
   when: 
     - app_env == "production"
-
-
-- name: Checking out the dev branch
-  become: true
-  become_user: azuracast
-  ansible.builtin.git:
-    repo: git@github.com:{{azuracast_dev_repo}}.git
-    dest: "{{ www_base }}/"
-    version: "{{ azuracast_dev_ver }}"
-    accept_hostkey: yes
-  when: 
-    - app_env == "development"
-
 
 - name: Extract Azuracast
   unarchive:
@@ -41,15 +30,15 @@
   when: 
     - app_env == "production"
 
-- name: Install Deps (Development)
+- name: Install Deps (Production)
   become: true
   become_user: azuracast
   command: >-
-    composer install
+    composer install --no-dev
   args:
     chdir: "{{ www_base }}"
   when: 
-    - app_env == "development"
+    - app_env == "production"
 
 - name: Install Deps (Production)
   become: true
@@ -60,3 +49,132 @@
     chdir: "{{ www_base }}"
   when: 
     - app_env == "production"
+
+
+# =========== Development =============
+
+- name: Copy SSH private key to user folder
+  become: true
+  become_user: azuracast
+  shell: |
+    cp
+    echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK"
+  changed_when: false
+  when: 
+    - app_env == "development"
+
+- name: Create SSH key directory
+  become: true
+  become_user: azuracast
+  ansible.builtin.file:
+    path: "{{app_base}}/.ssh/"
+    state: directory
+    mode: 0700
+  when: 
+    - app_env == "development"
+
+- name: Copy file with owner and permissions
+  become: true
+  become_user: azuracast
+  ansible.builtin.copy:
+    src: "{{ansible_base}}/.ssh/private.key"
+    dest: "{{app_base}}/.ssh/private.key"
+    mode: '0400'
+  when: 
+    - app_env == "development"
+
+- name: Start the SSH agent
+  become: true
+  become_user: azuracast
+  shell: |
+    eval $(ssh-agent)
+    echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK"
+  register: ssh_agent
+  changed_when: false
+  when: 
+    - app_env == "development"
+
+- name: Debug SSH agent output
+  debug:
+    var: ssh_agent.stdout_lines 
+  when: 
+    - app_env == "development"
+
+- name: Fail if SSH agent did not start correctly
+  fail:
+    msg: "Failed to start SSH agent or capture SSH_AUTH_SOCK"
+  when: 
+    - app_env == "development"
+    - ssh_agent.stdout_lines is not defined or ssh_agent.stdout_lines | length < 2
+
+- name: Extract SSH_AUTH_SOCK from SSH agent output
+  set_fact:
+    ssh_auth_sock: "{{ ssh_agent.stdout_lines[1].split('=')[1] }}"
+  when: 
+    - app_env == "development"
+    - ssh_agent.stdout_lines is defined and ssh_agent.stdout_lines | length >= 2
+
+- name: Debug SSH_AUTH_SOCK
+  debug:
+    var: ssh_auth_sock
+  when: app_env == "development"
+
+- name: Prompt for SSH passphrase
+  pause:
+    prompt: "Enter your SSH key passphrase (input will be hidden):"
+  register: passphrase_input
+  when: 
+    - app_env == "development"
+
+- name: Set passphrase fact
+  set_fact:
+    ssh_passphrase: "{{ passphrase_input.user_input }}"
+  when: 
+    - app_env == "development"
+
+- name: Ensure SSH agent is running and add the SSH key
+  become: true
+  become_user: azuracast
+  expect:
+    command: "ssh-add {{app_base}}/.ssh/private.key"
+    responses:
+      (?i)Enter passphrase: "{{ ssh_passphrase }}\n"
+  environment:
+    SSH_AUTH_SOCK: "{{ ssh_auth_sock }}"
+  when: 
+    - app_env == "development"
+
+- name: Checking out the dev branch
+  become: true
+  become_user: azuracast
+  ansible.builtin.git:
+    repo: git@github.com:{{azuracast_dev_repo}}.git
+    dest: "{{ www_base }}/"
+    version: "{{ azuracast_dev_ver }}"
+    accept_hostkey: yes
+    key_file: "{{app_base}}/.ssh/private.key"
+    force: true
+  environment:
+    SSH_AUTH_SOCK: "{{ ssh_auth_sock }}"
+    GIT_SSH_COMMAND: 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i {{app_base}}/.ssh/private.key -A'
+  when: 
+    - app_env == "development"
+
+- name: Stop the SSH agent
+  become: true
+  become_user: azuracast
+  shell: |
+    killall ssh-agent -u azuracast
+  ignore_errors: true
+  when: 
+    - app_env == "development"
+
+- name: Install Deps (Development)
+  become: true
+  become_user: azuracast
+  command: >-
+    composer install
+  args:
+    chdir: "{{ www_base }}"
+  when: 
+    - app_env == "development"

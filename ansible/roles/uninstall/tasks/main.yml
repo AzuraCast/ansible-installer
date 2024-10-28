@@ -27,19 +27,17 @@
     msg: >-
       is_systemd: {{ is_systemd }}
 
+- name: Stop Supervisord Processes
+  shell: "supervisorctl stop all"
+  ignore_errors: true
 
-- name: Enable and restart Supervisord service (Systemd)
+- name: Disable and stop Supervisord service (Systemd)
   systemd_service:
     name: "supervisord"
     enabled: false
     state: stopped
   ignore_errors: true
   when: is_systemd == True
-
-- name: Stop Supervisord Processes (No Systemd)
-  shell: "supervisorctl stop all"
-  ignore_errors: true
-  when: is_systemd != True
 
 - name: Stop Supervisord (No Systemd)
   shell: "killall -KILL supervisord"
