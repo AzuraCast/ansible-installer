@@ -181,6 +181,21 @@
 - name: Build lsp-plugins-ladspa
   shell: "cd /tmp/ladspa-0.4.17 && autoreconf -i && ./configure --prefix=/usr --libdir=/usr/lib64 && make && sudo make install"
 
+- name: Create liquidsoap directory if it does not exist
+  ansible.builtin.file:
+    path: "{{app_base}}/liquidsoap"
+    state: directory
+    owner: azuracast
+    group: azuracast
+
+- name: Write AzuraCast common liquidsoap config
+  template:
+    src: azuracast.liq.j2
+    dest: "{{ app_base }}/liquidsoap/azuracast.liq"
+    owner: azuracast
+    group: azuracast
+    mode: 0644
+    force: true
 
 #  @TODO: Find out if and which is required in this meta package and port those packages to RHEL
 # - name: Install Optional Audio Plugins

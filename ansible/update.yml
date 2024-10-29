@@ -12,7 +12,7 @@
     tmp_base: "{{ app_base }}/www_tmp"
     app_env: "production"
     update_mode: true
-    update_revision: 1
+    update_revision: 2
     azuracast_repo: "AzuraCast/AzuraCast"
     azuracast_ref: "heads/" 
     azuracast_ver: "main"
@@ -39,7 +39,7 @@
       when: update_revision|int < 1
 
     - role: centrifugo
-      when: update_revision|int < 1
+      when: update_revision|int < 3
 
     - role: "sftpgo"
       when: update_revision|int < 1
