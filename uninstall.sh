@@ -8,6 +8,7 @@ echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
 
     echo "Uninstalling AzuraCast..."
+    ansible-galaxy collection install community.general
     ansible-playbook ansible/uninstall.yml --inventory=ansible/hosts --extra-vars "app_env=$APP_ENV"
 
     echo " "

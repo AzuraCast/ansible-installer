@@ -50,7 +50,7 @@ fi
 
 sudo dnf install -y epel-release
 sudo dnf update -y
-sudo dnf install -y ansible python3-pip python3-mysqlclient curl
+sudo dnf install -y ansible python3-pip python3-mysqlclient python3-pexpect curl
 
 APP_ENV="${APP_ENV:-production}"
 

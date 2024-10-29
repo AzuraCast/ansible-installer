@@ -75,3 +75,35 @@
     option: "APPLICATION_ENV"
     value: "{{ app_env }}"
     mode: 0644
+
+- name: Set up environment file
+  ini_file:
+    dest: "{{ app_base }}/azuracast.env"
+    option: "{{ azure_dev_install_env_ini.option }}"
+    value: "{{ azure_dev_install_env_ini.value }}"
+    mode: 0644
+  loop:
+    - option: 'INIT_ADMIN_EMAIL'
+      value: 'dev@azuracast.dev'
+    - option: 'INIT_ADMIN_PASSWORD'
+      value: 'dev'
+    - option: 'INIT_BASE_URL'
+      value: 'https://azuracast.local'
+    - option: 'INIT_INSTANCE_NAME'
+      value: 'localdevelopment'
+    - option: 'INIT_DEMO_API_KEY'
+      value: ''
+    - option: 'INIT_ADMIN_API_KEY'
+      value: ''
+    - option: 'INIT_MUSIC_PATH'
+      value: '/var/azuracast/www/util/fixtures/init_music'
+    - option: 'INIT_PODCASTS_PATH'
+      value: '/var/azuracast/www/util/fixtures/init_podcasts'
+    - option: 'INIT_GEOLITE_LICENSE_KEY'
+      value: ''
+    - option: 'LOG_LEVEL'
+      value: 'true'
+  loop_control:
+    loop_var: azure_dev_install_env_ini
+  when: 
+      - app_env == "development"

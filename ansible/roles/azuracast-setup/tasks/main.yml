@@ -17,6 +17,15 @@
     php {{ www_base }}/backend/bin/console azuracast:setup
   when: not update_mode|bool
 
+- name: Run AzuraCast Setup Fixtures
+  become: true
+  become_user: azuracast
+  shell: >-
+    php {{ www_base }}/backend/bin/console azuracast:setup:fixtures
+  when: 
+    - app_env == "development"
+    - not update_mode|bool
+
 - name: Run AzuraCast Setup (Update Mode)
   become: true
   become_user: azuracast
