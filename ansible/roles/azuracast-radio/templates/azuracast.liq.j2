@@ -92,6 +92,7 @@ let settings.azuracast.apply_amplify = settings.make(
     true
 )
 
+
 #<-----
 Variables
 ----->#
@@ -130,6 +131,7 @@ Utility Functions
 %include "./crossfade.liq"
 %include "./utilities.liq"
 
+
 # Transport for HTTPS outputs.
 https_transport = http.transport.ssl()
 ignore(https_transport)
@@ -146,6 +148,7 @@ def azuracast.api_call(~timeout=settings.azuracast.http_timeout(), url, payload)
         label="azuracast.api",
         "API #{url} - Sending POST request to '#{full_url}' with body: #{payload}"
     )
+
 
     try
         response = http.post(full_url,
@@ -345,6 +348,7 @@ end
 enable_autocue_metadata()
 autocue.register(name="azuracast", azuracast.autocue)
 settings.autocue.preferred := "azuracast"
+
 
 #<-----
 AutoDJ
