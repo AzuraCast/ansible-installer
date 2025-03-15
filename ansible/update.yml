@@ -8,7 +8,7 @@
   pre_tasks:
     - name: Load environment variables from .env file (if it exists)
       ansible.builtin.include_vars:
-        file: "{{ playbook_dir | dirname }}/.env"
+        file: "{{ playbook_dir | dirname }}/ansible/.env"
         name: env_vars
       ignore_errors: yes
 
