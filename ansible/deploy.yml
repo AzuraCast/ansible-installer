@@ -5,7 +5,14 @@
 
   collections:
     - community.general
-    
+  
+  pre_tasks:
+    - name: Load environment variables from .env file (if it exists)
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir | dirname }}/ansible/.env"
+        name: env_vars
+      ignore_errors: yes
+  
   vars:
     ansible_base: "{{ playbook_dir | dirname }}"
     app_base: "/var/azuracast" # IF YOU CHANGE THAT, BAD THINGS HAPPEN, CHECK TODO.md
@@ -15,11 +22,11 @@
     update_mode: false
     dev_azuracast_user_password: "azuracast"
     dev_mysql_user_password: "azuracast"
-    azuracast_repo: "Azuracast/AzuraCast"
-    azuracast_ref: "heads/" 
-    azuracast_ver: "main"
-    azuracast_dev_repo: "username/AzuraCast" # Your repo name
-    azuracast_dev_ver: "dev" # Your repo development branch
+    azuracast_repo: "{{ env_vars.AZURACAST_REPO | default('AzuraCast/AzuraCast') }}"
+    azuracast_ref: "{{ env_vars.AZURACAST_REF | default('heads/') }}"
+    azuracast_ver: "{{ env_vars.AZURACAST_VER | default('stable') }}"
+    azuracast_dev_repo: "{{ env_vars.AZURACAST_DEV_REPO | default('AzuraCast/AzuraCast') }}"
+    azuracast_dev_ver: "{{ env_vars.AZURACAST_DEV_VER | default('main') }}"
 
   roles:
     - role: init

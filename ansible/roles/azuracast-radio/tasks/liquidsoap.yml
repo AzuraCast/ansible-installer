@@ -68,6 +68,8 @@
       - ladspa-devel
       - fftw2 # FOR SWH-LADSPA BUILD
       - fftw2-devel
+      - sqlite
+      - sqlite-devel
 
 
 - name: Download liblo
@@ -122,7 +124,7 @@
   shell: "{{item}}"
   with_items:
     - "{{opam.stdout}} init -a"
-    - "{{opam.stdout}} install -y -q magic dune pulseaudio ao ogg srt ssl taglib tls-liquidsoap opus taglib lilv mad lame faad speex imagelib theora vorbis gd flac fdkaac cry samplerate soundtouch lo shine ffmpeg ffmpeg-av  ffmpeg-avcodec ffmpeg-avdevice ffmpeg-avfilter ffmpeg-avutil bjack portaudio ladspa liquidsoap"
+    - "{{opam.stdout}} install -y -q magic dune pulseaudio ao ogg srt ssl taglib tls-liquidsoap opus taglib lilv mad lame faad speex imagelib theora vorbis gd flac fdkaac cry samplerate soundtouch lo shine ffmpeg ffmpeg-av  ffmpeg-avcodec ffmpeg-avdevice ffmpeg-avfilter ffmpeg-avutil bjack portaudio ladspa sqlite3 liquidsoap"
 
 - shell: eval `{{opam.stdout}} config env` && echo $OPAM_SWITCH_PREFIX
   become: true
@@ -192,6 +194,33 @@
   template:
     src: azuracast.liq.j2
     dest: "{{ app_base }}/liquidsoap/azuracast.liq"
+    owner: azuracast
+    group: azuracast
+    mode: 0644
+    force: true
+
+- name: Write AzuraCast common liquidsoap config
+  template:
+    src: cache.liq.j2
+    dest: "{{ app_base }}/liquidsoap/cache.liq"
+    owner: azuracast
+    group: azuracast
+    mode: 0644
+    force: true
+
+- name: Write AzuraCast common liquidsoap config
+  template:
+    src: crossfade.liq.j2
+    dest: "{{ app_base }}/liquidsoap/crossfade.liq"
+    owner: azuracast
+    group: azuracast
+    mode: 0644
+    force: true
+
+- name: Write AzuraCast common liquidsoap config
+  template:
+    src: utilities.liq.j2
+    dest: "{{ app_base }}/liquidsoap/utilities.liq"
     owner: azuracast
     group: azuracast
     mode: 0644
