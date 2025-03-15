@@ -16,7 +16,7 @@ if [[ "$1" == '--' ]]; then shift; fi
 
 . /etc/os-release
 
-distros=$ID . ' ' . $ID_LIKE
+distros="$ID $ID_LIKE"
 isRhelBased=false
 
 for word in $distros
@@ -32,8 +32,7 @@ if [[ $isRhelBased != true ]]; then
   exit 0
 fi
 
-majorVersion=$(rpm -q --queryformat '%{RELEASE}' rpm | grep -o [[:digit:]]*\$)
-echo $majorVersion
+majorVersion=$(cat /etc/system-release-cpe | awk -F: '{ print $5 }' | grep -o ^[0-9]*)
 if [[ $majorVersion -lt 8 ]]; then
   echo "RHEL 8+ is required"
   exit 0
@@ -44,7 +43,7 @@ sudo dnf update
 sudo dnf install -y ansible python3-pip python3-mysqlclient
 
 APP_ENV="${APP_ENV:-production}"
-UPDATE_REVISION="${UPDATE_REVISION:-1}"
+UPDATE_REVISION="${UPDATE_REVISION:-2}"
 
 echo "Updating AzuraCast (Environment: $APP_ENV, Update revision: $UPDATE_REVISION)"
 

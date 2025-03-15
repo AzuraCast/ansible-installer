@@ -71,11 +71,6 @@
   loop_control:
     loop_var: uninstall_file_to_delete
 
-- name: UFW - Turn off Firewall
-  ufw:
-    state: disabled
-  ignore_errors: true
-
 - name: Remove software
   ignore_errors: true
   dnf:

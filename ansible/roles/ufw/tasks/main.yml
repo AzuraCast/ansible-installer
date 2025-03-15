@@ -1,60 +1,65 @@
 ---
 
-- name: Disable Firewalld service
-  systemd_service:
-    name: "firewalld"
-    enabled: false
-    state: stopped
-  ignore_errors: true
-  when: is_systemd == True
+- name: Detect if running under WSL
+  command: systemd-detect-virt
+  register: virt_detection
+  changed_when: false
 
-- name: Install UFW Firewall
+
+- name: Remove UFW
   dnf:
-    name: ufw
-
-- name: UFW - Disable all other incoming by default
-  ufw:
-    policy: deny
-    direction: incoming
-
-- name: UFW - Allow all other outgoing by default
-  ufw:
-    policy: allow
-    direction: outgoing
-
-- name: UFW - Enable AzuraCast TCP Ports
-  ufw:
-    rule: allow
-    port: "{{ ufw_allow_rule }}"
-    proto: tcp
-  loop:
-    - 80
-    - 443
-    - 2022
-    - '8000:8999'
-  loop_control:
-    loop_var: ufw_allow_rule
-
-- name: UFW - Enable SSH
-  ufw:
-    rule: limit
-    port: ssh
-    proto: tcp
-
-- name: UFW - Turn on Firewall
-  ufw:
-    state: enabled
-  when: app_env == "production"
-
-- name: UFW - Turn off Firewall
-  ufw:
-    state: disabled
-  when: app_env == "development"
-
-- name: Disable Firewalld service
-  systemd_service:
-    name: "firewalld"
-    enabled: false
-    state: stopped
+    name: "ufw"
+    state: absent
   ignore_errors: true
-  when: is_systemd == True
+
+- name: Set fact for WSL detection
+  set_fact:
+    is_wsl: "{{ virt_detection.stdout == 'wsl' }}"
+
+- name: Execute tasks only if not running under WSL
+  block:
+    - name: Install Firewalld
+      dnf:
+        name: firewalld
+        state: present
+
+    - name: Ensure Firewalld service is started and enabled
+      systemd:
+        name: "firewalld"
+        enabled: true
+        state: started
+      when: is_systemd == True
+
+    - name: Firewalld - Enable AzuraCast TCP Ports
+      firewalld:
+        port: "{{ item }}"
+        zone: public
+        permanent: true
+        state: enabled
+      loop:
+        - 80/tcp
+        - 443/tcp
+        - 2022/tcp
+        - 8000-8999/tcp
+
+    - name: Firewalld - Enable SSH
+      firewalld:
+        service: ssh
+        zone: public
+        permanent: true
+        state: enabled
+
+    - name: Firewalld - Reload Firewall
+      firewalld:
+        state: reloaded
+
+    - name: Firewalld - Enable Firewall (if in production)
+      firewalld:
+        state: enabled
+      when: app_env == "production"
+
+    - name: Firewalld - Disable Firewall (if in development)
+      firewalld:
+        state: disabled
+      when: app_env == "development"
+  when: not is_wsl

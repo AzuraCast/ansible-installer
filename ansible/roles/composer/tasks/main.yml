@@ -40,28 +40,7 @@
   when: 
     - app_env == "production"
 
-- name: Install Deps (Production)
-  become: true
-  become_user: azuracast
-  command: >-
-    composer install --no-dev
-  args:
-    chdir: "{{ www_base }}"
-  when: 
-    - app_env == "production"
-
-
 # =========== Development =============
-
-- name: Copy SSH private key to user folder
-  become: true
-  become_user: azuracast
-  shell: |
-    cp
-    echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK"
-  changed_when: false
-  when: 
-    - app_env == "development"
 
 - name: Create SSH key directory
   become: true
@@ -121,7 +100,7 @@
 
 - name: Prompt for SSH passphrase
   pause:
-    prompt: "Enter your SSH key passphrase (input will be hidden):"
+    prompt: "Enter your SSH key passphrase (if you key doesnt have one, leave empty):"
   register: passphrase_input
   when: 
     - app_env == "development"

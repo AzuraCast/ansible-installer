@@ -50,7 +50,7 @@ fi
 
 sudo dnf install -y epel-release
 sudo dnf update -y
-sudo dnf install -y ansible python3-pip python3-mysqlclient python3-pexpect curl
+sudo dnf install -y ansible python3-pip python3-mysqlclient python3-pexpect curl yum ca-certificates
 
 APP_ENV="${APP_ENV:-production}"
 
@@ -64,4 +64,4 @@ fi
 
 echo "Installing AzuraCast (Environment: $APP_ENV)"
 ansible-galaxy collection install community.general
-ansible-playbook ansible/deploy.yml --inventory=ansible/hosts --extra-vars "app_env=$APP_ENV"
+ansible-playbook ansible/deploy.yml --inventory=ansible/hosts --extra-vars "app_env=$APP_ENV" #--tags centrifugo
