@@ -6,6 +6,7 @@
 
 
 # =========== Production =============
+
 - name: Download Azuracast Release
   get_url:
     url: "https://github.com/{{azuracast_repo}}/archive/refs/{{azuracast_ref}}/{{azuracast_ver}}.tar.gz"
@@ -42,16 +43,6 @@
 
 # =========== Development =============
 
-- name: Copy SSH private key to user folder
-  become: true
-  become_user: azuracast
-  shell: |
-    cp
-    echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK"
-  changed_when: false
-  when: 
-    - app_env == "development"
-
 - name: Create SSH key directory
   become: true
   become_user: azuracast
@@ -83,13 +74,11 @@
   when: 
     - app_env == "development"
 
-
 - name: Debug SSH agent output
   debug:
     var: ssh_agent.stdout_lines 
   when: 
     - app_env == "development"
-
 
 - name: Fail if SSH agent did not start correctly
   fail:
@@ -98,7 +87,6 @@
     - app_env == "development"
     - ssh_agent.stdout_lines is not defined or ssh_agent.stdout_lines | length < 2
 
-
 - name: Extract SSH_AUTH_SOCK from SSH agent output
   set_fact:
     ssh_auth_sock: "{{ ssh_agent.stdout_lines[1].split('=')[1] }}"
@@ -106,27 +94,23 @@
     - app_env == "development"
     - ssh_agent.stdout_lines is defined and ssh_agent.stdout_lines | length >= 2
 
-
 - name: Debug SSH_AUTH_SOCK
   debug:
     var: ssh_auth_sock
   when: app_env == "development"
 
-
 - name: Prompt for SSH passphrase
   pause:
-    prompt: "Enter your SSH key passphrase (input will be hidden):"
+    prompt: "Enter your SSH key passphrase (if you key doesnt have one, leave empty):"
   register: passphrase_input
   when: 
     - app_env == "development"
-
 
 - name: Set passphrase fact
   set_fact:
     ssh_passphrase: "{{ passphrase_input.user_input }}"
   when: 
     - app_env == "development"
-
 
 - name: Ensure SSH agent is running and add the SSH key
   become: true
@@ -139,7 +123,6 @@
     SSH_AUTH_SOCK: "{{ ssh_auth_sock }}"
   when: 
     - app_env == "development"
-
 
 - name: Checking out the dev branch
   become: true
@@ -157,7 +140,6 @@
   when: 
     - app_env == "development"
 
-
 - name: Stop the SSH agent
   become: true
   become_user: azuracast
@@ -166,7 +148,6 @@
   ignore_errors: true
   when: 
     - app_env == "development"
-
 
 - name: Install Deps (Development)
   become: true

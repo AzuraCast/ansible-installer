@@ -5,7 +5,7 @@
 
 - name: Download autocue
   get_url:
-    url: https://github.com/Moonbase59/autocue/archive/refs/tags/v4.1.0.tar.gz
+    url: https://github.com/Moonbase59/autocue/archive/refs/tags/v4.1.1.tar.gz
     dest: "/tmp/autocue.tar.gz"
     force: true
 
@@ -17,22 +17,15 @@
 
 - name: Copy autocue bin
   ansible.builtin.copy:
-    src: /tmp/autocue-4.1.0/cue_file
+    src: /tmp/autocue-4.1.1/cue_file
     dest: /usr/local/bin/cue_file
     owner: azuracast
     group: azuracast
     mode: 'a+x'
 
-- name: Create a directory if it does not exist
-  ansible.builtin.file:
-    path: "{{app_base}}/autocue"
-    state: directory
-    owner: azuracast
-    group: azuracast
-
 - name: Copy autocue liq file
   ansible.builtin.copy:
-    src: /tmp/autocue-4.1.0/autocue.cue_file.liq
-    dest: "{{app_base}}/autocue/autocue.liq"
+    src: /tmp/autocue-4.1.1/autocue.cue_file.liq
+    dest: "{{app_base}}/liquidsoap/autocue.liq"
     owner: azuracast
     group: azuracast

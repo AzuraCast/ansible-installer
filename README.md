@@ -72,8 +72,16 @@ bash update.sh
 
 ## Development
 
-Assuming that you are developing within your own fork/repo and so, set `azuracast_dev_repo` and `azuracast_dev_ver` in deploy.yml.  eg.
-```yml
-azuracast_dev_repo: "username/AzuraCast"
-azuracast_dev_ver: "dev-branch-name"
+Assuming that you are developing within your own fork/repo and so, your repo information in an .env file within the ansible directory
+ like that:
+```env
+AZURACAST_REPO: "Username/AzuraCast"
+AZURACAST_REF: "heads/"
+AZURACAST_VER: "YourStableProdBranch"
+AZURACAST_DEV_REPO: "Username/AzuraCast"
+AZURACAST_DEV_VER: "YourDevelopmentBranch"
+
 ```
+
+Since we'll be pulling the development repo using SSH (to allow commit push) you'll need to have your ssh private key (which has access to the repo you're working on) in the .ssh directory.
+Passpharse protected keys are supported as well.
