@@ -49,8 +49,9 @@
         permanent: true
         state: enabled
 
-    - name: Firewalld - Reload Firewall
-      firewalld:
+    - name: Always reload firewalld
+      ansible.builtin.service:
+        name: firewalld
         state: reloaded
 
     - name: Firewalld - Enable Firewall (if in production)
