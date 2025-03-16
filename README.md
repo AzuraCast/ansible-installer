@@ -80,7 +80,6 @@ AZURACAST_REF: "heads/"
 AZURACAST_VER: "YourStableProdBranch"
 AZURACAST_DEV_REPO: "Username/AzuraCast"
 AZURACAST_DEV_VER: "YourDevelopmentBranch"
-
 ```
 
 Since we'll be pulling the development repo using SSH (to allow commit push) you'll need to have your ssh private key (which has access to the repo you're working on) in the .ssh directory.

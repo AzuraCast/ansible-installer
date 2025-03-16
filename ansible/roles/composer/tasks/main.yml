@@ -40,7 +40,6 @@
   when: 
     - app_env == "production"
 
-
 # =========== Development =============
 
 - name: Create SSH key directory
@@ -158,5 +157,3 @@
     chdir: "{{ www_base }}"
   when: 
     - app_env == "development"
-
-
