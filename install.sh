@@ -50,7 +50,7 @@ fi
 
 sudo dnf install -y epel-release
 sudo dnf update -y
-sudo dnf install -y ansible python3-pip python3-mysqlclient python3-pexpect curl yum ca-certificates
+sudo dnf install -y ansible python3-pip python3-mysqlclient python3-pexpect curl yum ca-certificates --allowerasing
 
 APP_ENV="${APP_ENV:-production}"
 
