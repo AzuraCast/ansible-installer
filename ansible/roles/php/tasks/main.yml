@@ -91,13 +91,6 @@
     force: true
     mode: 0644
 
-- name: Copy opcache configs
-  template:
-    src: opcache.ini.j2
-    dest: /etc/php-zts.d/90-opcache.ini
-    force: true
-    mode: 0644
-
 - name: Configure ffi
   ini_file:
     dest: "/etc/php.ini"
