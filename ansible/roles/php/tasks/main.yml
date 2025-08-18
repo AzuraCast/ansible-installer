@@ -54,6 +54,7 @@
       - "php-maxminddb"   # Maxmind (GeoIP) DB native ext
       - "php-opcache"   
       - "php-sodium"
+      - "php-uuid"
 
 
 - name: Configure PHP FPM Pool

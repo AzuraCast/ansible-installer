@@ -121,10 +121,12 @@
 - name: Install ocaml and audio packages (This can take quite a while...)
   become: true
   become_user: azuracast
+  environment:
+    OPAMYES: "1"
   shell: "{{item}}"
   with_items:
     - "{{opam.stdout}} init -a"
-    - "{{opam.stdout}} install -y -q magic dune pulseaudio ao ogg srt ssl taglib tls-liquidsoap opus taglib lilv mad lame faad speex imagelib theora vorbis gd flac fdkaac cry samplerate soundtouch lo shine ffmpeg ffmpeg-av  ffmpeg-avcodec ffmpeg-avdevice ffmpeg-avfilter ffmpeg-avutil bjack portaudio ladspa sqlite3 liquidsoap"
+    - "{{opam.stdout}} install -y -q magic dune pulseaudio ao ogg srt ssl taglib tls-liquidsoap opus taglib lilv mad lame faad speex imagelib theora vorbis gd flac fdkaac cry samplerate soundtouch lo shine ffmpeg ffmpeg-av  ffmpeg-avcodec ffmpeg-avdevice ffmpeg-avfilter ffmpeg-avutil bjack portaudio ladspa sqlite3 liquidsoap.2.3.3"
 
 - shell: eval `{{opam.stdout}} config env` && echo $OPAM_SWITCH_PREFIX
   become: true
@@ -190,19 +192,24 @@
     owner: azuracast
     group: azuracast
 
+- name: Create liquidsoap directory if it does not exist
+  ansible.builtin.file:
+    path: "{{tmp_base}}/liquidsoap_cache"
+    state: directory
+    owner: azuracast
+    group: azuracast
+
+- name: Create liquidsoap directory if it does not exist
+  ansible.builtin.file:
+    path: "/tmp/liquidsoap_cache"
+    state: directory
+    owner: azuracast
+    group: azuracast
+
 - name: Write AzuraCast common liquidsoap config
   template:
     src: azuracast.liq.j2
     dest: "{{ app_base }}/liquidsoap/azuracast.liq"
-    owner: azuracast
-    group: azuracast
-    mode: 0644
-    force: true
-
-- name: Write AzuraCast common liquidsoap config
-  template:
-    src: cache.liq.j2
-    dest: "{{ app_base }}/liquidsoap/cache.liq"
     owner: azuracast
     group: azuracast
     mode: 0644

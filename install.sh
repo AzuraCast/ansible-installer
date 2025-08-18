@@ -82,4 +82,5 @@ fi
 
 echo "Installing AzuraCast (Environment: $APP_ENV)"
 ansible-galaxy collection install community.general
+ansible-galaxy collection install ansible.posix
 ansible-playbook ansible/deploy.yml --inventory=ansible/hosts --extra-vars "app_env=$APP_ENV" #--tags centrifugo

@@ -2,8 +2,8 @@
 - name: Reset nodejs module
   shell: dnf module reset nodejs -y
 
-- name: Enable nodejs 20 module
-  shell: dnf module enable nodejs:20 -y
+- name: Enable nodejs 22 module
+  shell: dnf module enable nodejs:22 -y
 
 - name: "Install nodejs"
   dnf:
