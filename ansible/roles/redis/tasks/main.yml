@@ -1,15 +1,16 @@
 ---
 
-- name: Install Redis
+- name: Install ValKey
   dnf:
-    name: redis
+    name: valkey
 
-- name: Install Redis Conf
+- name: Install ValKey Conf
   template:
     src: redis.conf.j2
-    dest: /etc/redis/redis.conf
+    dest: /etc/valkey/valkey.conf
     force: true
-    owner: "redis"
+    owner: "valkey"
+    group: "valkey"
     mode: 0644
 
 - name: Install Redis Supervisord conf

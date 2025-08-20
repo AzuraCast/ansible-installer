@@ -10,6 +10,12 @@
     name: nodejs
     state: present
 
+- name: "Install npm (if not already installed)"
+  dnf:
+    name: npm
+    state: present
+  ignore_errors: true
+
 - name: Set permissions for folders
   file: path="{{ item }}" state=directory owner=azuracast group=www-data mode=0744
   with_items:

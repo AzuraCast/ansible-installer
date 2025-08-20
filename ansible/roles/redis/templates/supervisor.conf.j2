@@ -1,7 +1,7 @@
 [program:redis]
-command=redis-server /etc/redis/redis.conf
+command=valkey-server /etc/valkey/valkey.conf
 priority=100
-user=redis
+user=valkey
 numprocs=1
 autostart=true
 autorestart=true
