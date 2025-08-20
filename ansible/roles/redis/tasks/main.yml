@@ -25,8 +25,8 @@
     path: /run/redis
     state: directory
     mode: 0755
-    owner: redis
-    group: redis
+    owner: valkey
+    group: valkey
 
 - name: Create tmpfile.d for redis to make sure /run folder created at boot
   template:
