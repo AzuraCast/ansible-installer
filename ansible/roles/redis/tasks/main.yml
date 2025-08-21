@@ -42,6 +42,6 @@
     state: stopped
   ignore_errors: true
   with_items:
-    - "redis-sentinel"
-    - "redis"
+    - "valkey-sentinel"
+    - "valkey"
   when: is_systemd == True
