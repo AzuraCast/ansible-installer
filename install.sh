@@ -54,32 +54,6 @@ sudo dnf install -y ansible python3-pip python3-mysqlclient python3-pexpect curl
 
 APP_ENV="${APP_ENV:-production}"
 
-# @TODO: migrate this to the liquidsoap role to support remote deployments
-if ! command -v opam &> /dev/null
-then
-    echo "[opam] Installing latest to /usr/local/bin"
-    case "$(uname -m)" in
-      x86_64)        plat="x86_64-linux" ;;
-      aarch64|arm64) plat="arm64-linux" ;;
-      *) echo "Unsupported arch: $(uname -m)"; exit 1 ;;
-    esac
-    tag="$(
-      curl -fsSL "${authHeader[@]}" \
-        https://api.github.com/repos/ocaml/opam/releases/latest |
-      awk -F '"' '/tag_name/{print $4; exit}'
-    )"
-    if [ -z "$tag" ]; then
-      echo "[opam] Could not determine latest tag"
-      exit 1
-    fi
-    asset="opam-${tag}-${plat}"
-    sudo curl -fL -o /usr/local/bin/opam \
-      "https://github.com/ocaml/opam/releases/download/${tag}/${asset}"
-    
-    sudo chmod 0755 /usr/local/bin/opam
-fi
-
-
 echo "Installing AzuraCast (Environment: $APP_ENV)"
 ansible-galaxy collection install community.general
 ansible-galaxy collection install ansible.posix

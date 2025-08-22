@@ -15,6 +15,10 @@
   
   vars:
     ansible_base: "{{ playbook_dir | dirname }}"
+    opam_version: "latest"
+    opam_install_path: "/usr/local/bin/opam"
+    opam_symlink_path: "/usr/bin/opam"
+    opam_github_token: "{{ env_vars.GITHUB_TOKEN | default('') }}"
     app_base: "/var/azuracast" # IF YOU CHANGE THAT, BAD THINGS HAPPEN, CHECK TODO.md
     www_base: "{{ app_base }}/www"
     tmp_base: "{{ app_base }}/www_tmp"
@@ -35,6 +39,8 @@
       tags: azuracast-user
     - role: azuracast-config
       tags: azuracast-config
+    - role: opam
+      tags: opam
     - role: azuracast-radio
       tags: azuracast-radio
     - role: supervisord
