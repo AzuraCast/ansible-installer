@@ -29,10 +29,19 @@
   ignore_errors: true
 
 
-- name: Set up AzuraCast database user
+- name: Set up AzuraCast database user (localhost socket)
   mysql_user:
     name: azuracast
     host: "localhost"
+    password: "{{ mysql_user_password }}"
+    priv: "azuracast.*:ALL,GRANT"
+    state: present
+  notify: send mysql notification
+
+- name: Set up AzuraCast database user (TCP 127.0.0.1)
+  mysql_user:
+    name: azuracast
+    host: "127.0.0.1"
     password: "{{ mysql_user_password }}"
     priv: "azuracast.*:ALL,GRANT"
     state: present

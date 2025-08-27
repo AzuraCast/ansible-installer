@@ -1,3 +1,4 @@
 .vscode/
 .ssh/private.key
 .env
+.idea/

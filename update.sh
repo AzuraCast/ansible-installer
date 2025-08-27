@@ -57,4 +57,6 @@ if [[ ${APP_ENV} == "production" ]]; then
   fi
 fi
 
+ansible-galaxy collection install community.general
+ansible-galaxy collection install ansible.posix
 ansible-playbook ansible/update.yml --inventory=ansible/hosts --extra-vars "app_env=$APP_ENV update_revision=$UPDATE_REVISION"

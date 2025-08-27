@@ -54,6 +54,7 @@
       - "php-maxminddb"   # Maxmind (GeoIP) DB native ext
       - "php-opcache"   
       - "php-sodium"
+      - "php-uuid"
 
 
 - name: Configure PHP FPM Pool
@@ -88,13 +89,6 @@
   template:
     src: opcache.ini.j2
     dest: /etc/php.d/90-opcache.ini
-    force: true
-    mode: 0644
-
-- name: Copy opcache configs
-  template:
-    src: opcache.ini.j2
-    dest: /etc/php-zts.d/90-opcache.ini
     force: true
     mode: 0644
 

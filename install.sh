@@ -50,18 +50,11 @@ fi
 
 sudo dnf install -y epel-release
 sudo dnf update -y
-sudo dnf install -y ansible python3-pip python3-mysqlclient python3-pexpect curl yum ca-certificates
+sudo dnf install -y ansible python3-pip python3-mysqlclient python3-pexpect curl yum ca-certificates --allowerasing
 
 APP_ENV="${APP_ENV:-production}"
 
-# @TODO: migrate this to the liquidsoap role to support remote deployments
-if ! command -v opam &> /dev/null
-then
-    echo "Installing OPAM"
-    bash -c "sh <(curl -fsSL https://raw.githubusercontent.com/ocaml/opam/master/shell/install.sh)"
-fi
-
-
 echo "Installing AzuraCast (Environment: $APP_ENV)"
 ansible-galaxy collection install community.general
+ansible-galaxy collection install ansible.posix
 ansible-playbook ansible/deploy.yml --inventory=ansible/hosts --extra-vars "app_env=$APP_ENV" #--tags centrifugo

@@ -19,7 +19,7 @@
     tmp_base: "{{ app_base }}/www_tmp"
     app_env: "production"
     update_mode: true
-    update_revision: 4
+    update_revision: 5
     azuracast_repo: "{{ env_vars.AZURACAST_REPO | default('AzuraCast/AzuraCast') }}"
     azuracast_ref: "{{ env_vars.AZURACAST_REF | default('heads/') }}"
     azuracast_ver: "{{ env_vars.AZURACAST_VER | default('stable') }}"
@@ -32,27 +32,27 @@
     - role: "azuracast-config"
 
     - role: "azuracast-radio"
-      when: update_revision|int < 4
+      when: update_revision|int < 6
 
     - role: "supervisord"
 
     - role: "nginx"
-      when: update_revision|int < 1
+      when: update_revision|int < 6
 
     - role: "php"
-      when: update_revision|int < 3
+      when: update_revision|int < 6
 
     - role: "redis"
-      when: update_revision|int < 1
+      when: update_revision|int < 6
 
     - role: centrifugo
-      when: update_revision|int < 3
+      when: update_revision|int < 6
 
     - role: "sftpgo"
       when: update_revision|int < 1
 
     - role: "mariadb"
-      when: update_revision|int < 1
+      when: update_revision|int < 6
 
     - role: "ufw"
       when: update_revision|int < 3

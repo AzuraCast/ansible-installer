@@ -1,15 +1,16 @@
 ---
 
-- name: Install Redis
+- name: Install ValKey
   dnf:
-    name: redis
+    name: valkey
 
-- name: Install Redis Conf
+- name: Install ValKey Conf
   template:
     src: redis.conf.j2
-    dest: /etc/redis/redis.conf
+    dest: /etc/valkey/valkey.conf
     force: true
-    owner: "redis"
+    owner: "valkey"
+    group: "valkey"
     mode: 0644
 
 - name: Install Redis Supervisord conf
@@ -24,8 +25,8 @@
     path: /run/redis
     state: directory
     mode: 0755
-    owner: redis
-    group: redis
+    owner: valkey
+    group: valkey
 
 - name: Create tmpfile.d for redis to make sure /run folder created at boot
   template:
@@ -41,6 +42,6 @@
     state: stopped
   ignore_errors: true
   with_items:
-    - "redis-sentinel"
-    - "redis"
+    - "valkey-sentinel"
+    - "valkey"
   when: is_systemd == True

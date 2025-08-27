@@ -167,7 +167,7 @@
       - MariaDB-backup
 
       # Redis
-      - redis
+      - valkey
 
       # UFW Firewall
       - ufw

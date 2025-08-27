@@ -1,0 +1,95 @@
+---
+# Uses vars you already set in deploy.yml:
+#   opam_version: "latest"
+#   opam_install_path: "/usr/local/bin/opam"
+#   opam_symlink_path: "/usr/bin/opam"
+#   opam_github_token: "{{ env_vars.GITHUB_TOKEN | default('') }}"
+
+# 1) Define the map first
+- name: Define architecture map for opam
+  set_fact:
+    _opam_arch_map:
+      x86_64: "x86_64-linux"
+      amd64:  "x86_64-linux"   # some facts report amd64
+      aarch64: "arm64-linux"
+      arm64:   "arm64-linux"
+
+# 2) Resolve the platform using the map
+- name: Resolve opam platform
+  set_fact:
+    _opam_platform: "{{ _opam_arch_map[ansible_architecture] | default('') }}"
+
+- name: Fail on unsupported architecture
+  fail:
+    msg: "Unsupported architecture: {{ ansible_architecture }} (known: {{ _opam_arch_map.keys() | list }})"
+  when: _opam_platform == ""
+
+# 3) Find the tag if requested
+- name: Get latest opam release tag from GitHub (when opam_version == latest)
+  uri:
+    url: https://api.github.com/repos/ocaml/opam/releases/latest
+    return_content: true
+    headers:
+      Accept: application/vnd.github+json
+      Authorization: "{{ 'Bearer ' ~ (opam_github_token | default('') | string) if ((opam_github_token | default('') | string | length) > 0) else omit }}"
+  register: _opam_latest
+  when: opam_version == "latest"
+  changed_when: false
+  failed_when: _opam_latest.status | default(0) not in [200]
+
+- name: Set _opam_tag from latest response
+  set_fact:
+    # Some tags start with "v", but the asset names/paths do not
+    _opam_tag: "{{ (_opam_latest.json.tag_name | default((_opam_latest.content | from_json).tag_name)) | regex_replace('^v','') }}"
+  when: opam_version == "latest"
+
+- name: Set _opam_tag to specified version
+  set_fact:
+    _opam_tag: "{{ opam_version }}"
+  when: opam_version != "latest"
+
+# 4) Build the download URL & decide if we need to install
+- name: Build download URL
+  set_fact:
+    _opam_asset_url: "https://github.com/ocaml/opam/releases/download/{{ _opam_tag }}/opam-{{ _opam_tag }}-{{ _opam_platform }}"
+
+- name: Check installed opam version (if any)
+  command: "{{ opam_install_path }} --version"
+  register: _opam_installed_version
+  changed_when: false
+  failed_when: false
+
+- name: Decide if opam needs (re)install
+  set_fact:
+    _opam_needs_install: "{{ _opam_installed_version.rc != 0 or (_opam_installed_version.stdout | trim) != _opam_tag }}"
+
+# 5) Install and symlink
+- name: Ensure parent dir for {{ opam_install_path }} exists
+  file:
+    path: "{{ opam_install_path | dirname }}"
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: Download opam {{ _opam_tag }} to {{ opam_install_path }}
+  get_url:
+    url: "{{ _opam_asset_url }}"
+    dest: "{{ opam_install_path }}"
+    mode: "0755"
+    force: true
+  when: _opam_needs_install
+  become: true
+
+- name: Ensure symlink {{ opam_symlink_path }} -> {{ opam_install_path }}
+  file:
+    src: "{{ opam_install_path }}"
+    dest: "{{ opam_symlink_path }}"
+    state: link
+    force: true
+  become: true
+
+# 6) Verify
+- name: Verify opam is callable now
+  command: "{{ opam_symlink_path }} --version"
+  register: _opam_verify
+  changed_when: false
