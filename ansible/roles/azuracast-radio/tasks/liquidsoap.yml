@@ -10,12 +10,10 @@
     name: pipewire-jack-audio-connection-kit
     state: absent
 
-- name: Install FFMPEG 6x
-  dnf:
-    name: compat-ffmpeg6-devel.x86_64
-    enablerepo: raven-extras
-    allow_downgrade: true
-
+#- name: Install FFMPEG 7
+#  dnf:
+#    name: ffmpeg-devel.x86_64
+#    allow_downgrade: true
 
 - name: Install Liquidsoap Dependencies
   dnf:
@@ -23,6 +21,8 @@
     enablerepo: raven-extras
   vars:
     packages:
+      - ffmpeg
+      - ffmpeg-devel
       - libpng-devel
       - bubblewrap
       - freetype-devel
@@ -70,6 +70,7 @@
       - fftw2-devel
       - sqlite
       - sqlite-devel
+      - fontconfig-devel
 
 
 - name: Download liblo
@@ -126,7 +127,7 @@
   shell: "{{item}}"
   with_items:
     - "{{opam.stdout}} init -a"
-    - "{{opam.stdout}} install -y -q magic dune pulseaudio ao ogg srt ssl taglib tls-liquidsoap opus taglib lilv mad lame faad speex imagelib theora vorbis gd flac fdkaac cry samplerate soundtouch lo shine ffmpeg ffmpeg-av  ffmpeg-avcodec ffmpeg-avdevice ffmpeg-avfilter ffmpeg-avutil bjack portaudio ladspa sqlite3 liquidsoap.2.3.3"
+    - "{{opam.stdout}} install -y -q magic dune pulseaudio ao ogg srt ssl taglib tls-liquidsoap opus taglib lilv mad lame faad speex imagelib theora vorbis gd flac fdkaac cry samplerate soundtouch lo shine conf-ffmpeg ffmpeg ffmpeg-av  ffmpeg-avcodec ffmpeg-avdevice ffmpeg-avfilter ffmpeg-avutil bjack portaudio ladspa sqlite3 liquidsoap.2.3.3"
 
 - shell: eval `{{opam.stdout}} config env` && echo $OPAM_SWITCH_PREFIX
   become: true
