@@ -15,6 +15,10 @@
 - name: Add empty root .my.cnf (if none exists)
   template: src=root_empty_my.cnf.j2 dest=/root/.my.cnf owner=root group=root mode=0600 force=no
 
+- name: Pause for 20 seconds to allow  mariadb process to start
+  ansible.builtin.pause:
+    seconds: 20
+
 - name: MariaDB Cleanup
   command: >-
     mariadb --defaults-extra-file=/root/.my.cnf -ne "{{ azure_db_install_sql_cleanup_query }}"
