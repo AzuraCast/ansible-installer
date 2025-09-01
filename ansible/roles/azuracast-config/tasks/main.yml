@@ -102,7 +102,7 @@
     - option: 'INIT_GEOLITE_LICENSE_KEY'
       value: ''
     - option: 'LOG_LEVEL'
-      value: 'true'
+      value: 'debug'
   loop_control:
     loop_var: azure_dev_install_env_ini
   when: 

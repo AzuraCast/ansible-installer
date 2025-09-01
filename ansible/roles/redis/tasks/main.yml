@@ -4,6 +4,22 @@
   dnf:
     name: valkey
 
+- name: Ensure vm.overcommit_memory=1 (runtime + persistent)
+  become: true
+  ansible.posix.sysctl:
+    name: vm.overcommit_memory
+    value: '1'
+    state: present
+    sysctl_set: true
+    sysctl_file: /etc/sysctl.d/99-valkey-memory.conf
+    reload: true
+
+- name: Verify vm.overcommit_memory
+  command: sysctl -n vm.overcommit_memory
+  register: verify_overcommit
+  changed_when: false
+- debug: var=verify_overcommit.stdout
+
 - name: Install ValKey Conf
   template:
     src: redis.conf.j2
