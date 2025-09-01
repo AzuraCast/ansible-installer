@@ -1,0 +1,359 @@
+---
+
+- name: Remove default pipewire-jack-audio-connection-kit
+  dnf:
+    name: pipewire-jack-audio-connection-kit
+    state: absent
+
+- name: Install Liquidsoap Dependencies
+  dnf:
+    name: "{{ packages }}"
+    enablerepo:
+      - "raven"
+      - "raven-extras"
+      - "raven-multimedia"
+  vars:
+    packages:
+      - libpng-devel
+      - bubblewrap
+      - freetype-devel
+      - gd
+      - gd-devel
+      - libjpeg-devel
+      - portaudio-devel
+      - SDL2-devel
+      - SDL2_image-devel
+      - SDL2_ttf-devel
+      # - libswresample-free-devel
+      # - libswscale-free-devel
+      - taglib-devel
+      - libtiff-devel
+      - libX11-devel
+      - libXpm-devel
+      - file-libs
+      - file-devel
+      - libao
+      - libao-devel
+      - faad2-libs
+      - faad2-devel
+      - fdk-aac-devel
+      - jack-audio-connection-kit
+      - jack-audio-connection-kit-devel
+      - flac-libs
+      - flac-devel
+      - lilv-libs
+      - lilv-devel
+      - opus-devel
+      - speex-devel
+      - libtheora-devel
+      - lame-devel
+      - libmad-devel
+      - pulseaudio-libs-devel
+      - libsamplerate-devel
+      - soundtouch-devel
+      - srt-devel
+      - vorbis-tools
+      - flac
+      - frei0r-devel
+      - ladspa
+      - ladspa-devel
+      - fftw2 # FOR SWH-LADSPA BUILD
+      - fftw2-devel
+      - sqlite
+      - sqlite-devel
+      - fontconfig-devel
+
+- set_fact:
+    ffmpeg_version: "{{ ffmpeg_version | default('7.1.1') }}"
+    ffmpeg_prefix: "{{ ffmpeg_prefix | default('/usr/local') }}"
+    ffmpeg_src_dir: "{{ ffmpeg_src_dir | default('/usr/local/src/ffmpeg-build') }}"
+    ffmpeg_make_jobs: "{{ ffmpeg_make_jobs | default(ansible_processor_vcpus | default(2)) }}"
+    extra_configure_flags: "{{ extra_configure_flags | default('--enable-lto --enable-runtime-cpudetect --disable-static --enable-shared --shlibdir=/usr/lib64') }}"
+    require_fdk: "{{ require_fdk | default(true) }}"
+
+# ---------- Toolchain ----------
+- name: Install toolchain
+  dnf:
+    name:
+      - "@Development Tools"
+      - autoconf
+      - automake
+      - cmake
+      - gcc
+      - gcc-c++
+      - git
+      - libtool
+      - make
+      - meson
+      - nasm
+      - yasm
+      - pkgconfig
+      - perl
+      - python3
+      - python3-pip
+      - zlib-devel
+    state: present
+
+# ---------- Codec libs/devel (from Raven repos) ----------
+# Expanded with the devels you were missing in the probe (libdav1d-devel, libwebp-devel, etc.)
+- name: Install recommended codec devel packages (Raven provides them)
+  dnf:
+    name:
+      # Audio encoders / DSP
+      - fdk-aac
+      - fdk-aac-devel
+      - opus-devel
+      - lame-devel
+      - twolame-devel
+      - libvorbis-devel
+      - soxr-devel
+      - rubberband-devel
+
+      # Subtitles / text rendering
+      - libass-devel
+      - freetype-devel
+      - harfbuzz-devel
+      - fribidi-devel
+      - fontconfig-devel
+
+      # Protocols / crypto
+      - gnutls-devel
+      - srt-devel
+      - libssh-devel
+
+      # Video encoders / decoders (enable when available)
+      - x264
+      - x264-devel
+      - x265
+      - x265-devel
+      - libvpx-devel
+      - svt-av1-devel
+      - libaom-devel
+      - libdav1d-devel
+      - openh264-devel
+
+      # Useful libs / filters / utils
+      - zimg-devel
+      - libvmaf-devel
+      - libwebp-devel
+      - libxml2-devel
+      - libdrm-devel
+      - mesa-libGL-devel
+      - libX11-devel
+      - libXext-devel
+      - snappy-devel          # optional
+      - zeromq-devel          # optional
+      - pulseaudio-libs-devel
+    enablerepo:
+      - raven
+      - raven-extras
+      - raven-multimedia
+    state: present
+  #failed_when: false
+
+# ---------- Source ----------
+- name: Create build dir
+  file: { path: "{{ ffmpeg_src_dir }}", state: directory, mode: "0755" }
+
+- name: Download FFmpeg {{ ffmpeg_version }}
+  get_url:
+    url: "https://ffmpeg.org/releases/ffmpeg-{{ ffmpeg_version }}.tar.xz"
+    dest: "{{ ffmpeg_src_dir }}/ffmpeg-{{ ffmpeg_version }}.tar.xz"
+    mode: "0644"
+
+- name: Extract
+  unarchive:
+    src: "{{ ffmpeg_src_dir }}/ffmpeg-{{ ffmpeg_version }}.tar.xz"
+    dest: "{{ ffmpeg_src_dir }}"
+    remote_src: true
+    creates: "{{ ffmpeg_src_dir }}/ffmpeg-{{ ffmpeg_version }}"
+
+# ---------- Probe + flags ----------
+# Build PKG_CONFIG_PATH
+- set_fact:
+    pkgcfg_paths: "/usr/lib64/pkgconfig:/usr/local/lib64/pkgconfig:/usr/local/lib/pkgconfig:/usr/lib/pkgconfig:{{ lookup('env','PKG_CONFIG_PATH') | default('', true) }}"
+
+# Explicit map: pkg-config module -> ./configure flags (audio + video)
+- set_fact:
+    probe_modules:
+      # Audio encoders / DSP
+      fdk-aac:        "--enable-libfdk_aac --enable-nonfree"
+      mp3lame:        "--enable-libmp3lame"
+      libmp3lame:     "--enable-libmp3lame"      # alias, if repo uses this key
+      opus:           "--enable-libopus"
+      vorbis:         "--enable-libvorbis"
+      twolame:        "--enable-libtwolame"
+      soxr:           "--enable-libsoxr"
+      rubberband:     "--enable-librubberband"
+      speex:          "--enable-libspeex"
+
+      # Subtitles / text
+      libass:         "--enable-libass"
+      freetype2:      "--enable-libfreetype"
+      fontconfig:     "--enable-fontconfig"
+
+      # Protocols / crypto
+      gnutls:         "--enable-gnutls"
+      srt:            "--enable-libsrt"
+      libssh:         "--enable-libssh"
+
+      # Video encoders / decoders
+      x264:           "--enable-libx264"
+      x265:           "--enable-libx265"
+      vpx:            "--enable-libvpx"
+      aom:            "--enable-libaom"
+      SvtAv1Enc:      "--enable-libsvtav1"
+      dav1d:          "--enable-libdav1d"
+      openh264:       "--enable-libopenh264"
+
+      # I/O / capture / video utils
+      libv4l2:        "--enable-libv4l2"
+      libdrm:         "--enable-libdrm"
+      zimg:           "--enable-libzimg"
+
+      # Filters / metrics / containers
+      libvmaf:        "--enable-libvmaf"
+      libxml-2.0:     "--enable-libxml2"
+      libwebp:        "--enable-libwebp"
+      vidstab:        "--enable-libvidstab"
+
+      # Misc (optional)
+      snappy:         "--enable-libsnappy"
+      libzmq:         "--enable-libzmq"
+
+# Probe availability
+- name: Probe modules via pkg-config
+  shell: |
+    set -e
+    export PKG_CONFIG_PATH="{{ pkgcfg_paths }}"
+    {% for m in probe_modules.keys() %}
+    if pkg-config --exists {{ m }}; then echo "{{ m }}=1"; else echo "{{ m }}=0"; fi
+    {% endfor %}
+  args: { executable: /bin/bash }
+  register: probe_out
+  changed_when: false
+
+- name: Show pkg-config probe results
+  debug:
+    var: probe_out.stdout
+
+# --- Build final flags in steps (facts exist before use) ---
+
+# 1) Base flags
+- set_fact:
+    base_flags:
+      - "--prefix={{ ffmpeg_prefix }}"
+      - "--enable-gpl"
+      - "--enable-version3"
+      - "--enable-avfilter"
+      - "--enable-postproc"
+      - "--enable-pthreads"
+
+# 2) Extract found modules (always define)
+- set_fact:
+    found_modules: >-
+      {{ (probe_out.stdout | default('')) | regex_findall('^([A-Za-z0-9_.+-]+)=1', multiline=True) | list }}
+
+# 3a) Build module_flags
+- set_fact:
+    module_flags: "{{ found_modules | default([]) | map('extract', probe_modules) | select('truthy') | list }}"
+
+# 3a.1) Fallback: detect libmp3lame by headers/libs (if pkg-config missing), and force-enable
+- name: Fallback detect libmp3lame by headers/libs if pkg-config missing
+  shell: |
+    test -f /usr/include/lame/lame.h && \
+    (ldconfig -p | grep -q libmp3lame\.so) && echo "yes" || echo "no"
+  register: have_lame_hdrs
+  changed_when: false
+
+- name: Force-enable libmp3lame if found without pkg-config
+  set_fact:
+    module_flags: "{{ (module_flags | default([])) + ['--enable-libmp3lame'] }}"
+  when: have_lame_hdrs.stdout == 'yes' and ('--enable-libmp3lame' not in (module_flags | default([])))
+
+# 3b) Normalize extra flags into a list
+- set_fact:
+    extra_flags_list: >-
+      {{
+        (
+          extra_configure_flags
+            if (extra_configure_flags is defined and extra_configure_flags is sequence and extra_configure_flags is not string)
+            else (
+              (extra_configure_flags | default('') | string | trim)
+                | regex_replace('\\s+',' ')
+                | split(' ')
+                if (extra_configure_flags | default('') | string | trim)
+                else []
+            )
+        )
+      }}
+
+# 3c) Final cfg_flags
+- set_fact:
+    cfg_flags: "{{ base_flags + module_flags + extra_flags_list }}"
+
+- name: Show final configure flags
+  debug: { var: cfg_flags }
+
+# ---------- Build ----------
+- name: Configure FFmpeg
+  shell: |
+    set -euo pipefail
+    export PKG_CONFIG_PATH="{{ pkgcfg_paths }}"
+    ./configure {{ cfg_flags | join(' ') }}
+  args: { chdir: "{{ ffmpeg_src_dir }}/ffmpeg-{{ ffmpeg_version }}" }
+
+- name: Make
+  community.general.make:
+    chdir: "{{ ffmpeg_src_dir }}/ffmpeg-{{ ffmpeg_version }}"
+    params: { jobs: "{{ ffmpeg_make_jobs }}" }
+
+- name: Install
+  community.general.make:
+    chdir: "{{ ffmpeg_src_dir }}/ffmpeg-{{ ffmpeg_version }}"
+    target: install
+
+# ---------- ldconfig ----------
+- name: Ensure loader paths
+  copy:
+    dest: /etc/ld.so.conf.d/ffmpeg-local.conf
+    mode: "0644"
+    content: |
+      {{ ffmpeg_prefix }}/lib
+      {{ ffmpeg_prefix }}/lib64
+
+- name: ldconfig
+  command: /sbin/ldconfig
+
+# ---------- Symlinks ----------
+- name: Symlink ffmpeg/ffprobe
+  file:
+    src: "{{ ffmpeg_prefix }}/bin/{{ item }}"
+    dest: "/usr/bin/{{ item }}"
+    state: link
+    force: true
+  loop: [ffmpeg, ffprobe]
+
+# ---------- Sanity ----------
+- name: Version
+  command: "{{ ffmpeg_prefix }}/bin/ffmpeg -hide_banner -version"
+  register: ver
+  changed_when: false
+
+- name: Encoders
+  command: "{{ ffmpeg_prefix }}/bin/ffmpeg -hide_banner -encoders"
+  register: enc
+  changed_when: false
+
+- debug:
+    msg: |
+      {{ (ver.stdout.splitlines()[:2] | join('\n')) }}
+      ---
+      {{ (enc.stdout | regex_findall('^A.*\\s+(libfdk_aac|aac|libopus|libmp3lame|libx264|libx265|libsvtav1|vpx|aom)', multiline=True)) | join(', ') }}
+
+- name: Fail if FDK requested but not found
+  fail:
+    msg: "libfdk_aac was requested but not found."
+  when:
+    - require_fdk | bool
+    - enc.stdout is not search('libfdk_aac')

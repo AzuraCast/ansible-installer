@@ -5,74 +5,6 @@
     path: "{{ app_base }}/.opam"
     state: absent
 
-- name: Remove default pipewire-jack-audio-connection-kit
-  dnf:
-    name: pipewire-jack-audio-connection-kit
-    state: absent
-
-#- name: Install FFMPEG 7
-#  dnf:
-#    name: ffmpeg-devel.x86_64
-#    allow_downgrade: true
-
-- name: Install Liquidsoap Dependencies
-  dnf:
-    name: "{{ packages }}"
-    enablerepo: raven-extras
-  vars:
-    packages:
-      - ffmpeg
-      - ffmpeg-devel
-      - libpng-devel
-      - bubblewrap
-      - freetype-devel
-      - gd
-      - gd-devel
-      - libjpeg-devel
-      - portaudio-devel
-      - SDL2-devel
-      - SDL2_image-devel
-      - SDL2_ttf-devel
-      # - libswresample-free-devel
-      # - libswscale-free-devel
-      - taglib-devel
-      - libtiff-devel
-      - libX11-devel
-      - libXpm-devel
-      - file-libs
-      - file-devel
-      - libao
-      - libao-devel
-      - faad2-libs
-      - faad2-devel
-      - fdk-aac-devel
-      - jack-audio-connection-kit
-      - jack-audio-connection-kit-devel
-      - flac-libs
-      - flac-devel
-      - lilv-libs
-      - lilv-devel
-      - opus-devel
-      - speex-devel
-      - libtheora-devel
-      - lame-devel
-      - libmad-devel
-      - pulseaudio-libs-devel
-      - libsamplerate-devel
-      - soundtouch-devel
-      - srt-devel
-      - vorbis-tools
-      - flac
-      - frei0r-devel
-      - ladspa
-      - ladspa-devel
-      - fftw2 # FOR SWH-LADSPA BUILD
-      - fftw2-devel
-      - sqlite
-      - sqlite-devel
-      - fontconfig-devel
-
-
 - name: Download liblo
   get_url:
     url: https://github.com/radarsat1/liblo/releases/download/0.32/liblo-0.32.tar.gz
@@ -124,6 +56,8 @@
   become_user: azuracast
   environment:
     OPAMYES: "1"
+    PKG_CONFIG_PATH: "/usr/local/lib64/pkgconfig:/usr/local/lib/pkgconfig:/usr/lib64/pkgconfig:/usr/lib/pkgconfig"
+    PATH: "/usr/local/bin:/usr/bin:/bin"
   shell: "{{item}}"
   with_items:
     - "{{opam.stdout}} init -a"

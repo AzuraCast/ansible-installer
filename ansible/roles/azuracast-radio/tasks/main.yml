@@ -3,6 +3,10 @@
 - name: Build Icecast
   include_tasks: icecast.yml
 
+- name: Build FFMPEG + FDK-AAC
+  include_tasks: ffmpeg.yml
+  tags: ffmpeg
+
 - name: Install Liquidsoap
   include_tasks: liquidsoap.yml
 
