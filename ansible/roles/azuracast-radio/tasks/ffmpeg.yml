@@ -62,6 +62,7 @@
       - sqlite
       - sqlite-devel
       - fontconfig-devel
+      - libXft-devel
 
 - set_fact:
     ffmpeg_version: "{{ ffmpeg_version | default('7.1.1') }}"
@@ -191,6 +192,7 @@
       libass:         "--enable-libass"
       freetype2:      "--enable-libfreetype"
       fontconfig:     "--enable-fontconfig"
+      harfbuzz:    "--enable-libharfbuzz"
 
       # Protocols / crypto
       gnutls:         "--enable-gnutls"
