@@ -61,7 +61,7 @@
   shell: "{{item}}"
   with_items:
     - "{{opam.stdout}} init -a"
-    - "{{opam.stdout}} install -y -q magic dune pulseaudio ao ogg srt ssl taglib tls-liquidsoap opus taglib lilv mad lame faad speex imagelib theora vorbis gd flac fdkaac cry samplerate soundtouch lo shine conf-ffmpeg ffmpeg ffmpeg-av  ffmpeg-avcodec ffmpeg-avdevice ffmpeg-avfilter ffmpeg-avutil bjack portaudio ladspa sqlite3 liquidsoap.2.3.3"
+    - "{{opam.stdout}} install -y -q magic dune pulseaudio ao ogg srt ssl tsdl-image tsdl-ttf graphics taglib conf-freetype tls-liquidsoap opus taglib lilv mad lame faad speex imagelib theora vorbis gd flac fdkaac cry samplerate soundtouch lo shine conf-ffmpeg ffmpeg ffmpeg-av  ffmpeg-avcodec ffmpeg-avdevice ffmpeg-avfilter ffmpeg-avutil bjack portaudio ladspa sqlite3 liquidsoap.2.4.0"
 
 - shell: eval `{{opam.stdout}} config env` && echo $OPAM_SWITCH_PREFIX
   become: true
