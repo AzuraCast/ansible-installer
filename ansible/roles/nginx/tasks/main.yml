@@ -100,6 +100,20 @@
     state: link
     src: "{{ app_base }}/storage/acme/default.crt"
 
+- name: Ensure nginx tmp directories exist at boot
+  copy:
+    dest: /etc/tmpfiles.d/nginx-azuracast.conf
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      d /tmp/nginx_client 0755 azuracast nginx - -
+      d /tmp/nginx_fastcgi 0755 azuracast nginx - -
+      d /tmp/nginx_cache 0755 azuracast nginx - -
+
+- name: Apply tmpfiles
+  command: systemd-tmpfiles --create
+
 - name: Install Nginx Supervisord conf
   template:
     src: supervisor.conf.j2
